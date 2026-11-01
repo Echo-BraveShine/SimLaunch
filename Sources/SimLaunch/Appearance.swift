@@ -25,8 +25,11 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 
 struct AppAppearanceModifier: ViewModifier {
     @AppStorage(AppAppearance.storageKey) private var appearance = AppAppearance.system
+    @Environment(\.colorScheme) private var inheritedScheme
     func body(content: Content) -> some View {
-        content.onAppear { appearance.apply() }
+        let scheme = appearance == .system ? inheritedScheme : appearance == .dark ? ColorScheme.dark : .light
+        content.environment(\.colorScheme, scheme)
+            .onAppear { appearance.apply() }
             .onChange(of: appearance) { value in value.apply() }
     }
 }

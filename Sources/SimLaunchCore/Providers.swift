@@ -1,12 +1,21 @@
 import Foundation
 
 public enum Parsers {
+    public static func iosRuntime(_ identifier: String) -> String {
+        let prefix = "com.apple.CoreSimulator.SimRuntime."
+        guard identifier.hasPrefix(prefix) else { return identifier }
+        let components = identifier.dropFirst(prefix.count).split(separator: "-")
+        guard let platform = components.first else { return "iOS" }
+        return String(platform) + (components.count > 1 ? " " + components.dropFirst().joined(separator: ".") : "")
+    }
     public static func ios(_ text: String) throws -> [Device] {
         struct Root: Decodable { let devices: [String: [Entry]] }
         struct Entry: Decodable { let udid: String; let name: String; let state: String; let isAvailable: Bool?; let availabilityError: String?; let dataPath: String? }
         let root = try JSONDecoder().decode(Root.self, from: Data(text.utf8))
         return root.devices.sorted { $0.key < $1.key }.flatMap { runtime, entries in entries.map { entry in
-            var device = Device(platform: .iOS, key: entry.udid, name: entry.name, state: entry.isAvailable == false ? .unavailable : (entry.state == "Booted" ? .running : (entry.state == "Shutdown" ? .stopped : .starting)), detail: entry.availabilityError ?? runtime)
+            let version = iosRuntime(runtime)
+            let detail = [version, entry.availabilityError].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+            var device = Device(platform: .iOS, key: entry.udid, name: entry.name, state: entry.isAvailable == false ? .unavailable : (entry.state == "Booted" ? .running : (entry.state == "Shutdown" ? .stopped : .starting)), detail: detail)
             device.directory = entry.dataPath ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Developer/CoreSimulator/Devices/" + entry.udid).path
             return device
         } }
@@ -79,14 +88,16 @@ public struct AndroidProvider: DeviceProvider {
     let launches: LaunchManager
     let runner = ProcessRunner()
     let registry: AndroidRegistry
-    public init(_ config: Configuration, launches: LaunchManager, registry: AndroidRegistry = AndroidRegistry()) { self.config = config; self.launches = launches; self.registry = registry }
+    let metadata: AndroidMetadataCache
+    public init(_ config: Configuration, launches: LaunchManager, registry: AndroidRegistry = AndroidRegistry(), metadata: AndroidMetadataCache = AndroidMetadataCache()) { self.config = config; self.launches = launches; self.registry = registry; self.metadata = metadata }
     func emulator() throws -> String { try PathDiscovery.resolve(config.emulator, candidates: PathDiscovery.sdkRoots.map { $0 + "/emulator/emulator" } + PathDiscovery.pathCandidates("emulator")) }
     func adb() throws -> String {
         let sibling = (try? emulator()).map { URL(fileURLWithPath: $0).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("platform-tools/adb").path }
         return try PathDiscovery.resolve(config.adb, candidates: [sibling].compactMap { $0 } + PathDiscovery.sdkRoots.map { $0 + "/platform-tools/adb" } + PathDiscovery.pathCandidates("adb"))
     }
     public func list() async throws -> [Device] {
-        let names = try await runner.run(emulator(), ["-list-avds"], environment: config.androidEnvironment).split(separator: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        let emulatorPath = try emulator()
+        let names = try await runner.run(emulatorPath, ["-list-avds"], environment: config.androidEnvironment).split(separator: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
         let adbPath = try adb()
         let entries = try Parsers.adb(await runner.run(adbPath, ["devices"]))
         var observations: [AndroidObservation] = []
@@ -104,7 +115,20 @@ public struct AndroidProvider: DeviceProvider {
             observations.append(AndroidObservation(serial: serial, name: name, connected: status == "device", bootCompleted: bootCompleted))
         }
         var devices = await registry.devices(names: names, observations: observations)
-        for index in devices.indices { devices[index].directory = DeviceDirectories.android(name: devices[index].name, config: config) }
+        let sdkRoot = URL(fileURLWithPath: emulatorPath).resolvingSymlinksInPath().deletingLastPathComponent().deletingLastPathComponent().path
+        await metadata.retainRuntimeKeys(Set(entries.map { adbPath + ":" + $0.0 }))
+        for index in devices.indices {
+            let directory = DeviceDirectories.android(name: devices[index].name, config: config)
+            devices[index].directory = directory
+            let serial = devices[index].serial
+            let runtimeKey = serial.map { adbPath + ":" + $0 }
+            let readRuntime: (@Sendable () async throws -> String)?
+            if devices[index].state == .running, let serial {
+                readRuntime = { [runner] in try await runner.run(adbPath, ["-s", serial, "shell", "getprop"], timeout: 3) }
+            } else { readRuntime = nil }
+            let info = await metadata.info(directory: directory, sdkRoots: [sdkRoot] + PathDiscovery.sdkRoots, runtimeKey: runtimeKey, readRuntime: readRuntime)
+            if !info.detail.isEmpty { devices[index].detail = info.detail }
+        }
         return devices
     }
 

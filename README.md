@@ -1,6 +1,6 @@
 # SimLaunch
 
-SimLaunch 是使用 SwiftUI 编写的 macOS 模拟器管理工具，提供设备主窗口和菜单栏入口，用于查询、启动和停止 iOS、Android、HarmonyOS 模拟器。
+SimLaunch 是使用 SwiftUI 编写的 macOS 模拟器管理工具，提供锚定状态栏的设备面板，用于查询、启动和停止 iOS、Android、HarmonyOS 模拟器。
 
 当前应用 Bundle ID 为 `dev.ekko.simlaunch`。
 
@@ -65,7 +65,7 @@ open dist/SimLaunch.app
 
 打包脚本使用 macOS 自带的 sips、iconutil、ditto 和 codesign，生成临时签名（ad hoc）的 `dist/SimLaunch.app`，并尝试刷新该路径的系统应用注册。本地默认生成本机架构二进制；设置 `APP_ARCHITECTURES=universal` 可生成 arm64 / x86_64 通用包。正式发布工作流支持更新归档签名，以及可选的 Developer ID 签名和 Apple 公证，详见 [发布说明](docs/RELEASING.md)。
 
-应用包设置了 `LSUIElement`，作为菜单栏应用运行，不常驻 Dock。打开应用会显示设备主窗口，也可通过菜单栏使用；齿轮按钮打开设置。
+应用包设置了 `LSUIElement`，作为仅状态栏应用运行，不在 Dock 或应用切换器中显示；直接运行源码也使用相同策略。打开应用直接显示锚定状态栏图标的设备面板，不再创建独立设备主窗口。点击状态栏图标可展开或关闭面板；重复打开应用会复用该面板。齿轮按钮打开独立设置窗口，关闭设置不会退出应用。
 
 ### 使用 Xcode 调试
 
@@ -77,7 +77,7 @@ open dist/SimLaunch.app
 
 ## 设备列表与操作
 
-- 按 iOS、Android、HarmonyOS 分组；没有可显示设备的平台不展示分类，不可用设备放入单独的可折叠“不可用”分类。所有平台均无设备且查询成功时，统一显示一条空列表提示；查询失败时保留错误提示。
+- 按 iOS、Android、HarmonyOS 分组；各分类支持展开与收起，并分别保存状态，重启和切换语言后仍保留。没有可显示设备的平台不展示分类，不可用设备放入单独的可折叠“不可用”分类。所有平台均无设备且查询成功时，统一显示一条空列表提示；查询失败时保留错误提示。
 - “常用”位于列表顶部，记录通过 SimLaunch 成功启动到目标状态或成功执行 iOS“显示”的设备，最近一次排在最前。记录保存在本机；没有可显示记录时隐藏，已删除或当前不可用的设备不显示。它不追踪其他开发工具中的使用行为，平台分组仍保留完整列表。
 - 启动、停止和删除前重新查询设备状态；同一设备操作期间禁用重复操作。不同工具同时修改设备状态时仍可能出现竞争，错误会提示重试。
 - 完成一轮查询后等待约 5 秒再自动刷新，也可手动刷新。自动查询不显示加载动画；用户点击刷新后，刷新按钮原位显示加载动画，完成后恢复图标。若自动查询正在进行，手动刷新会复用该轮查询并显示其进度。三个平台依次查询，因此实际刷新间隔包含查询耗时；某平台失败会保留它原有条目并标记状态未知，随后继续查询其他平台。
@@ -103,7 +103,7 @@ open dist/SimLaunch.app
 
 ### 通用
 
-- **外观**：跟随系统、浅色、深色，默认跟随系统。切换后立即应用到设备窗口、菜单栏面板和设置页，并保存供下次启动使用；不修改 macOS 的全局外观设置。
+- **外观**：跟随系统、浅色、深色，默认跟随系统。切换后立即应用到设备面板和设置页，并保存供下次启动使用；不修改 macOS 的全局外观设置。
 - **语言**：简体中文、English、跟随系统，立即生效并保存。界面、设备状态及应用定义的错误提示提供中英文；设备原名、外部 CLI 输出和系统生成的诊断保留原文。系统原生界面可能遵循系统语言。
 - **登录时启动**：使用 `SMAppService.mainApp` 注册或取消登录项，立即生效，不依赖路径保存按钮。开关读取系统状态；需要批准时显示提示和系统设置入口。建议先将应用放在固定位置（如 `/Applications`）再启用。该功能已接入系统接口，但尚未通过注销或重启完成自动启动验证。
 
@@ -128,7 +128,7 @@ open dist/SimLaunch.app
 
 ### iOS
 
-列表使用 `xcrun simctl list devices --json`；boot、shutdown 和 delete 均针对具体 UDID。不可用状态依据 isAvailable 判断。Booted 映射为“运行中”，不等同于桌面或应用已经完全就绪。
+列表使用 `xcrun simctl list devices --json`；运行时标识转换为可读版本（如 `iOS 18.5`），不可用设备同时保留错误原因；boot、shutdown 和 delete 均针对具体 UDID。不可用状态依据 isAvailable 判断。Booted 映射为“运行中”，不等同于桌面或应用已经完全就绪。
 
 兼容旧版 Simulator.app 和 Xcode 27 的 DeviceHub.app。当前本机 Device Hub 位于 `/Applications/Xcode.app/Contents/Applications/DeviceHub.app`；程序从应用 Info.plist 的 CFBundleExecutable 判断可执行文件。
 
@@ -139,6 +139,8 @@ Device Hub 通过 `devices://device/open?id=<UDID>` 打开目标设备，旧版 
 通过 `emulator -list-avds` 查询 AVD，通过 `adb devices` 查询连接端点，仅接受 emulator-* serial，并使用 `adb -s SERIAL emu avd name` 关联 AVD。名称解析兼容 LF 和 CRLF 换行；启动使用 `-avd NAME`，停止使用 `emu kill`。
 
 无法关联名称的启动中 serial 不单独生成设备行，并暂时将未关联 AVD 标记为状态未知以阻止重复启动。AndroidRegistry 保留仍出现在 adb 列表中的 serial 与已确认名称的关联；serial 从列表消失后移除缓存。连接成功但 sys.boot_completed 尚未返回 1 时标记“启动中”，返回 1 后才标记“运行中”。这仍不代表所有应用均已就绪。真正的多个运行实例仍可按 serial 分别停止。
+
+设备详情优先显示 `Android 15 · API 35 · arm64` 这样的系统版本、API 等级和架构。停止时读取 AVD 配置及镜像的 `source.properties`、`build.prop`，支持自定义目录和小数 API 等级；运行就绪后用 getprop 校验并缓存。镜像或配置变化、设备断开后相应缓存失效。不能确认系统版本时仅显示已知的 API / 架构，不根据设备名称猜测版本；serial 保留给设备关联、停止操作和悬停详情。
 
 ### HarmonyOS
 
@@ -194,6 +196,8 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 | 文件 | 职责 |
 | --- | --- |
 | `Sources/SimLaunch/App.swift` | 设备列表、使用记录、设置及操作协调 |
+| `Sources/SimLaunch/MenuBarController.swift` | 状态栏面板、启动行为、独立设置窗口及分类折叠状态 |
+| `Sources/SimLaunchCore/AndroidSystemInfo.swift` | Android 镜像与运行时版本读取及缓存 |
 | `Sources/SimLaunch/WindowPresentation.swift` | 设置窗口激活、前置及初始焦点处理 |
 | `Sources/SimLaunch/LoginItemController.swift` | macOS 登录项状态及注册操作 |
 | `Sources/SimLaunch/Appearance.swift` | 平台图标、通用设置图标和材质适配 |

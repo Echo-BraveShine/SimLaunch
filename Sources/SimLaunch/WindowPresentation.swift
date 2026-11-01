@@ -53,27 +53,3 @@ struct SettingsWindowAttachment: NSViewRepresentable {
     func makeNSView(context: Context) -> AttachmentView { AttachmentView() }
     func updateNSView(_ nsView: AttachmentView, context: Context) {}
 }
-
-@MainActor final class WeakWindowReference {
-    weak var window: NSWindow?
-}
-
-/// Capture only the window hosting this panel, never infer it from NSApp.keyWindow.
-struct PanelWindowAttachment: NSViewRepresentable {
-    let reference: WeakWindowReference
-    final class AttachmentView: NSView {
-        var reference: WeakWindowReference?
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            reference?.window = window
-        }
-    }
-    func makeNSView(context: Context) -> AttachmentView {
-        let view = AttachmentView()
-        view.reference = reference
-        return view
-    }
-    func updateNSView(_ nsView: AttachmentView, context: Context) {
-        reference.window = nsView.window
-    }
-}

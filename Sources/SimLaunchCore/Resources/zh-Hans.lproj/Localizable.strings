@@ -89,3 +89,13 @@
 "Buy me a coffee" = "请我喝杯咖啡";
 "Optional support for ongoing development." = "自愿支持后续开发与维护。";
 "Open Buy Me a Coffee in your default browser." = "在默认浏览器中打开 Buy Me a Coffee 支持页面。";
+"Settings…" = "设置…";
+"Edit" = "编辑";
+"Undo" = "撤销";
+"Redo" = "重做";
+"Cut" = "剪切";
+"Copy" = "复制";
+"Paste" = "粘贴";
+"Select All" = "全选";
+"Window" = "窗口";
+"Close Window" = "关闭窗口";

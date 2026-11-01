@@ -23,6 +23,7 @@ import SimLaunchCore
     private var pending: [String: (DeviceState, Date)] = [:]
     private let launches = LaunchManager()
     private let androidRegistry = AndroidRegistry()
+    private let androidMetadata = AndroidMetadataCache()
     init() {
         config = (UserDefaults.standard.data(forKey: "configuration").flatMap { try? JSONDecoder().decode(Configuration.self, from: $0) }) ?? Configuration()
         Task { [weak self] in
@@ -33,7 +34,7 @@ import SimLaunchCore
         }
     }
     func provider(_ platform: Platform) -> any DeviceProvider {
-        switch platform { case .iOS: return IOSProvider(config); case .Android: return AndroidProvider(config, launches: launches, registry: androidRegistry); case .HarmonyOS: return HarmonyProvider(config, launches: launches) }
+        switch platform { case .iOS: return IOSProvider(config); case .Android: return AndroidProvider(config, launches: launches, registry: androidRegistry, metadata: androidMetadata); case .HarmonyOS: return HarmonyProvider(config, launches: launches) }
     }
     func save() {
         UserDefaults.standard.set(try? JSONEncoder().encode(config), forKey: "configuration")
@@ -118,34 +119,22 @@ import SimLaunchCore
     }
 }
 
-@main struct SimLaunchApp: App {
-    @StateObject private var store: Store
-    private let updates = UpdateController.shared
-    init() {
+@main struct SimLaunchApp {
+    @MainActor static func main() {
         AppPreferences.migrateIfNeeded()
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
         (AppAppearance(rawValue: UserDefaults.standard.string(forKey: AppAppearance.storageKey) ?? "") ?? .system).apply()
-        _store = StateObject(wrappedValue: Store())
-    }
-    @AppStorage("appLanguage") private var language = "system"
-    var body: some Scene {
-        Window(language == "zh-Hans" || (language == "system" && L10n.language == "zh-Hans") ? "SimLaunch 设备" : "SimLaunch Devices", id: "devices") {
-            Panel().environmentObject(store).environment(\.locale, Locale(identifier: L10n.language))
-        }.windowResizability(.contentSize)
-        MenuBarExtra {
-            Panel(isMenuBar: true).environmentObject(store).environment(\.locale, Locale(identifier: L10n.language))
-        } label: {
-            Image(nsImage: AppBrand.menuBarIcon).renderingMode(.template).accessibilityLabel("SimLaunch")
-        }.menuBarExtraStyle(.window)
-        Window(language == "zh-Hans" || (language == "system" && L10n.language == "zh-Hans") ? "SimLaunch 设置" : "SimLaunch Settings", id: "settings") { SettingsView().environmentObject(store).environment(\.locale, Locale(identifier: L10n.language)) }.windowResizability(.contentSize)
+        let delegate = SimLaunchAppDelegate()
+        app.delegate = delegate
+        withExtendedLifetime(delegate) { app.run() }
     }
 }
 struct Panel: View {
-    var isMenuBar = false
-    @State private var hostWindow = WeakWindowReference()
+    var openSettings: () -> Void
     @AppStorage("appLanguage") private var language = "system"
     @State private var deletionCandidate: Device?
     @EnvironmentObject var store: Store
-    @Environment(\.openWindow) private var openWindow
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -161,40 +150,27 @@ struct Panel: View {
                 }.disabled(store.manuallyRefreshing)
                     .help(L10n.text("刷新"))
                     .accessibilityLabel(L10n.text(store.manuallyRefreshing ? "Refreshing…" : "刷新"))
-                Button {
-                    if isMenuBar { hostWindow.window?.close() }
-                    // Let the status panel finish closing before requesting application focus.
-                    DispatchQueue.main.async {
-                        openWindow(id: "settings")
-                        SettingsWindowPresenter.shared.requestFocus()
-                    }
-                } label: { Image(systemName: "gearshape") }
+                Button { openSettings() } label: { Image(systemName: "gearshape") }
             }.padding(8).modifier(AdaptiveGlass())
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     if !store.recentDevices.isEmpty {
-                        Text(L10n.text("常用")).font(.headline)
-                        ForEach(store.recentDevices) { device in
-                            deviceRow(device, showPlatform: true)
+                        DeviceGroup(id: "recent", title: L10n.text("常用"), count: store.recentDevices.count) {
+                            ForEach(store.recentDevices) { device in deviceRow(device, showPlatform: true) }
                         }
                     }
                     ForEach(Platform.allCases) { platform in
                         let devices = store.devices.filter { $0.platform == platform && $0.state != .unavailable }
                         if !devices.isEmpty {
-                            Text(platform.rawValue).font(.headline)
-                            ForEach(devices) { device in
-                                deviceRow(device)
+                            DeviceGroup(id: platform.rawValue, title: platform.rawValue, count: devices.count) {
+                                ForEach(devices) { device in deviceRow(device) }
                             }
                         }
                     }
                     let unavailable = store.devices.filter { $0.state == .unavailable }
                     if !unavailable.isEmpty {
-                        DisclosureGroup {
-                            ForEach(unavailable) { device in
-                                deviceRow(device)
-                            }
-                        } label: {
-                            Text(L10n.format("Unavailable (%d)", unavailable.count)).font(.headline)
+                        DeviceGroup(id: "unavailable", title: L10n.text("不可用"), count: unavailable.count, initiallyExpanded: false) {
+                            ForEach(unavailable) { device in deviceRow(device) }
                         }
                     }
                     if store.devices.isEmpty && store.hasRefreshed && store.errors.isEmpty {
@@ -209,7 +185,6 @@ struct Panel: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .modifier(AppAppearanceModifier())
         .environment(\.locale, Locale(identifier: language == "system" ? L10n.language : language))
-        .background(PanelWindowAttachment(reference: hostWindow).frame(width: 0, height: 0))
         .navigationTitle(L10n.text("SimLaunch 设备"))
         .task {
             NSApp.applicationIconImage = AppBrand.icon
@@ -245,6 +220,7 @@ struct Panel: View {
                 .disabled(store.busy.contains(device.id) || ![DeviceState.running, .stopped].contains(device.state))
         }.padding(8).modifier(AdaptiveCard(radius: 8))
         .contentShape(Rectangle())
+        .help([device.detail, device.serial].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "\n"))
         .contextMenu {
             Button(L10n.text("在访达中显示")) { store.showInFinder(device) }
                 .disabled(device.directory == nil)

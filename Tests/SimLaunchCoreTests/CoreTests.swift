@@ -44,6 +44,7 @@ final class LocalSmokeTests: XCTestCase {
         print("Local devices: iOS=\(ios.count), HarmonyOS=\(harmony.count)")
         let android = try await AndroidProvider(config, launches: LaunchManager()).list()
         print("Local Android AVDs=\(android.count)")
+        for device in android { print("Android metadata: \(device.name) | \(device.detail)") }
     }
 }
 
