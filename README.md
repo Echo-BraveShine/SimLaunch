@@ -4,6 +4,8 @@ SimLaunch 是使用 SwiftUI 编写的 macOS 模拟器管理工具，提供设备
 
 当前应用 Bundle ID 为 `dev.ekko.simlaunch`。
 
+应用信息统一维护在根目录 `Info.plist`：`CFBundleShortVersionString` 是版本号，`CFBundleVersion` 是本地默认构建号。打包时复制该文件；正式发布要求 Git 标签 `vX.Y.Z` 与其中的版本号一致，CI 单独生成递增构建号。设置页面、Sparkle 和 Homebrew 均读取最终应用包的版本信息。直接通过 Swift Package / Xcode 运行未打包的可执行文件时，设置页面仍显示开发模式标识。
+
 项目通过 Swift Package 管理，默认开发模式没有第三方 Swift 包依赖；正式更新版通过 `SIMLAUNCH_ENABLE_SPARKLE=1` 启用固定版本的 Sparkle 2.10.1。各平台功能仍依赖本机安装的 Xcode、Android SDK 或 DevEco Studio；SimLaunch 不负责创建模拟器、下载 SDK、安装系统镜像或接受开发工具许可。
 
 ## 环境要求
@@ -28,6 +30,21 @@ brew install --cask echo-braveshine/simlaunch/simlaunch
 ```
 
 这会安装 Release 应用包，SDK 仍需单独准备。升级、卸载及自动维护说明见 [Homebrew 说明](docs/HOMEBREW.md)。
+
+中英文官网源码位于 `website/`，包含 GitHub Pages 自动部署配置。本地预览、启用 Pages 和维护方式见 [官网说明](docs/WEBSITE.md)。
+
+### 首次打开：允许 macOS 安全提示
+
+当前发布版尚未使用 Apple Developer ID 证书签名，也未通过 Apple 公证。无论通过 Homebrew 安装还是从 GitHub Releases 下载，首次打开时都可能被 macOS 拦截，提示无法验证开发者或 Apple 无法检查该应用。
+
+确认应用来自本项目的 GitHub Release 后，按以下步骤允许打开：
+
+1. 在“应用程序”中打开一次 `SimLaunch.app`，使系统显示拦截提示。
+2. 打开 **系统设置 → 隐私与安全性**，向下滚动至“安全性”区域。
+3. 找到 SimLaunch 的拦截记录，点击 **仍要打开**（Open Anyway）。
+4. 按系统提示完成身份验证，并在确认弹窗中点击 **打开**。
+
+菜单和按钮文字可能随 macOS 版本略有不同。具体步骤见 [Apple 官方说明](https://support.apple.com/zh-cn/102445)。
 
 ## 构建与运行
 

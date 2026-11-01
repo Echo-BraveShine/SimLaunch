@@ -1,0 +1,159 @@
+(() => {
+  "use strict";
+
+  const translations = {
+    zh: {
+      pageTitle: "SimLaunch — 三个平台，一个启动入口",
+      pageDescription: "SimLaunch 是 macOS 上的模拟器管理工具。在一个入口中查看、启动和停止 iOS、Android 与 HarmonyOS 模拟器。",
+      skip: "跳到内容", navigation: "主导航", language: "语言", platforms: "支持的平台",
+      navFeatures: "功能", navInstall: "安装", heroEyebrow: "为 macOS 开发者而作",
+      heroLineOne: "三个平台。", heroLineTwo: "一个启动入口。",
+      heroDescription: "iOS、Android、HarmonyOS。把分散的模拟器收进菜单栏，让启动、切换与日常管理都顺手一点。",
+      download: "下载 macOS 版", installGuide: "安装指南", macos: "macOS 13+", swiftui: "原生 SwiftUI",
+      screenshotCaption: "真实应用截图 · 设备与状态取决于本机环境",
+      screenshotsEyebrow: "直接看看，真实界面", screenshotsTitle: "你的工具，你的设置。",
+      screenshotsDescription: "截图来自实际运行的 SimLaunch。\n切换语言，也能看到对应的应用界面。",
+      settingsScreenshotCaption: "iOS 平台设置 · 自动发现与手动路径配置",
+      devicesAlt: "SimLaunch 中文设备列表，展示常用设备和 iOS 设备", settingsAlt: "SimLaunch 中文 iOS 设置窗口，包含平台导航和自动路径查找",
+      platformIntro: "你的设备，不必分散管理。", featuresEyebrow: "少一点切换，多一点专注",
+      featuresTitle: "日常要用的，刚刚好。", featuresDescription: "不必为每一次启动打开一整套开发工具。\n从设备列表开始，专注眼前的开发。",
+      featureOneTitle: "从菜单栏，直达设备。", featureOneDescription: "查看三平台设备，启动或停止模拟器。常用设备显示在最上方，不可用设备独立归类。",
+      featureTwoTitle: "顺手的事，一次右键。", featureTwoDescription: "复制设备名称、定位设备目录，或冷启动 Android 与 HarmonyOS 设备。删除操作需再次确认。",
+      featureThreeTitle: "跟随你的开发环境。", featureThreeDescription: "自动查找开发工具，也支持手动指定路径。中英文切换、登录时启动，在同一个设置窗口完成。",
+      nativeEyebrow: "像 macOS 本来就有的一样", nativeTitle: "原生体验，安静陪伴。",
+      nativeDescription: "使用 SwiftUI 构建，常驻菜单栏。在 macOS 26 及更新系统上，部分界面采用 Liquid Glass；较旧系统使用原生材质。",
+      installEyebrow: "下一次开发，从这里开始", installTitle: "准备好，启动。", installDescription: "选择适合你的安装方式。\n开发工具与系统镜像需自行准备。",
+      downloadCardTitle: "直接下载", downloadCardDescription: "前往 GitHub Releases，下载通用版 ZIP，解压并将 SimLaunch 移入“应用程序”。",
+      viewRelease: "查看最新发布", downloadFootnote: "支持 Apple Silicon 与 Intel 的通用构建",
+      copy: "复制命令", copied: "已复制", copySuccess: "安装命令已复制", copyFailure: "未能复制，请选中终端中的命令手动复制。",
+      brewComment: "# 添加安装源并安装", brewNote: "需先发布包含 Cask 的版本。可用性及维护说明请查看仓库。", brewGuide: "Homebrew 安装与升级说明",
+      securityTitle: "首次打开，需要你确认。", securityDescription: "当前发布版未使用 Apple Developer ID 签名，也未通过 Apple 公证。如果 macOS 阻止打开，请先确认下载来源，再到“系统设置 → 隐私与安全性”中点击“仍要打开”，并按提示确认。", appleHelp: "查看 Apple 官方说明",
+      faqEyebrow: "开始之前", faqTitle: "你可能想知道。",
+      faqOneTitle: "需要先安装哪些开发工具？", faqOneAnswer: "管理 iOS 设备需要完整 Xcode 和已安装的模拟器运行时；Android 需要 Android SDK 中的 emulator、adb 及已创建的 AVD；HarmonyOS 需要 DevEco Studio 及已创建的模拟器。SimLaunch 不包含这些工具。",
+      faqTwoTitle: "能创建模拟器或下载系统镜像吗？", faqTwoAnswer: "目前专注于已有设备的查询、启动、停止与管理。创建虚拟设备和下载系统镜像，请使用对应平台的开发工具。",
+      faqThreeTitle: "安装后为什么没有出现在 Dock 中？", faqThreeAnswer: "SimLaunch 是菜单栏应用，不常驻 Dock。启动后可使用设备主窗口，也可以点击屏幕顶部的 SimLaunch 图标管理设备或打开设置。",
+      faqFourTitle: "支持哪些 macOS 版本？", faqFourAnswer: "应用部署目标为 macOS 13 及以上，尚未在全部支持版本上完成实机验证。具体设备的可用性也取决于开发工具版本、系统镜像和电脑架构。",
+      closingEyebrow: "让工具归位，让思路向前", closingTitle: "少找窗口。多写一点。", viewSource: "在 GitHub 查看源码", footerNote: "为更顺手的开发日常。", feedback: "问题反馈", releases: "发布记录", backToTop: "回到顶部 ↑"
+    },
+    en: {
+      pageTitle: "SimLaunch — Three platforms. One place to launch.",
+      pageDescription: "Manage iOS, Android, and HarmonyOS simulators on macOS. Browse your devices, start and stop simulators, and keep recent devices close at hand.",
+      skip: "Skip to content", navigation: "Main navigation", language: "Language", platforms: "Supported platforms",
+      navFeatures: "Features", navInstall: "Install", heroEyebrow: "Made for developers on macOS",
+      heroLineOne: "Three platforms.", heroLineTwo: "One place to launch.",
+      heroDescription: "iOS, Android, HarmonyOS. Bring your simulators to the menu bar, with a convenient place to launch, switch, and manage your devices.",
+      download: "Download for macOS", installGuide: "Installation guide", macos: "macOS 13+", swiftui: "Native SwiftUI",
+      screenshotCaption: "Actual app screenshot · Devices and states depend on your setup",
+      screenshotsEyebrow: "A closer look at the real app", screenshotsTitle: "Your tools. Your settings.",
+      screenshotsDescription: "Captured from a running copy of SimLaunch.\nSwitch languages to see the matching app interface.",
+      settingsScreenshotCaption: "iOS settings · Automatic discovery and custom tool paths",
+      devicesAlt: "SimLaunch device list in English, showing recent and iOS devices", settingsAlt: "SimLaunch iOS settings in English, with platform navigation and automatic path discovery",
+      platformIntro: "Your devices. All in one place.", featuresEyebrow: "Less switching. More focus.",
+      featuresTitle: "Everyday essentials, within reach.", featuresDescription: "Skip opening a full IDE just to launch a device.\nStart with your device list. Get back to building.",
+      featureOneTitle: "Your menu bar. Your devices.", featureOneDescription: "Browse, start, and stop simulators across three platforms. Recent devices stay at the top; unavailable devices get their own group.",
+      featureTwoTitle: "A right click goes a long way.", featureTwoDescription: "Copy device names, reveal device folders, or cold boot Android and HarmonyOS devices. Device deletion requires confirmation.",
+      featureThreeTitle: "At home in your setup.", featureThreeDescription: "Discover tools automatically or set custom paths. Choose English or Chinese and manage launch at login in one settings window.",
+      nativeEyebrow: "Feels right at home on your Mac", nativeTitle: "Native by design. Quiet by nature.",
+      nativeDescription: "Built with SwiftUI, right in your menu bar. Selected surfaces use Liquid Glass on macOS 26 and later, with native materials on older systems.",
+      installEyebrow: "Your next session starts here", installTitle: "Ready. Set. Launch.", installDescription: "Choose how you want to install.\nDeveloper tools and system images are installed separately.",
+      downloadCardTitle: "Download the app", downloadCardDescription: "Get the universal ZIP from GitHub Releases, extract it, and move SimLaunch to your Applications folder.",
+      viewRelease: "View latest release", downloadFootnote: "Universal builds for Apple Silicon and Intel",
+      copy: "Copy commands", copied: "Copied", copySuccess: "Installation commands copied", copyFailure: "Copy failed. Select the commands in the terminal and copy them manually.",
+      brewComment: "# Add the tap and install", brewNote: "Requires a release with a published Cask. See the repository for availability and maintenance details.", brewGuide: "Homebrew installation and updates",
+      securityTitle: "Your first launch needs a confirmation.", securityDescription: "Current releases do not have Apple Developer ID signing or Apple notarization. If macOS blocks the app, verify the download source, then go to System Settings → Privacy & Security → Open Anyway and follow the prompts.", appleHelp: "Read Apple's instructions",
+      faqEyebrow: "Before you begin", faqTitle: "A few things to know.",
+      faqOneTitle: "Which developer tools do I need?", faqOneAnswer: "iOS devices require a full Xcode installation and simulator runtimes. Android requires the Android SDK emulator, adb, and an existing AVD. HarmonyOS requires DevEco Studio and an existing simulator. These tools are not included in SimLaunch.",
+      faqTwoTitle: "Can I create devices or download system images?", faqTwoAnswer: "SimLaunch currently focuses on listing, launching, stopping, and managing existing devices. Use each platform's developer tools to create devices and download system images.",
+      faqThreeTitle: "Why isn't SimLaunch in my Dock?", faqThreeAnswer: "SimLaunch is a menu bar app and does not stay in the Dock. Use the main device window, or click the SimLaunch icon at the top of your screen to manage devices and open settings.",
+      faqFourTitle: "Which macOS versions are supported?", faqFourAnswer: "The app targets macOS 13 and later; it has not been tested on every supported version. Device availability also depends on your developer tools, system images, and computer architecture.",
+      closingEyebrow: "Tools in place. Ideas in motion.", closingTitle: "Less window hunting. More building.", viewSource: "Explore the source on GitHub", footerNote: "For a smoother development day.", feedback: "Report an issue", releases: "Releases", backToTop: "Back to top ↑"
+    }
+  };
+
+  const commands = "brew tap echo-braveshine/simlaunch https://github.com/Echo-BraveShine/SimLaunch.git\nbrew install --cask echo-braveshine/simlaunch/simlaunch";
+  let language = "zh";
+  let toastTimeout;
+  let copyTimeout;
+
+  function setLanguage(next, persist = false) {
+    language = next === "en" ? "en" : "zh";
+    const strings = translations[language];
+    document.documentElement.lang = language === "en" ? "en" : "zh-CN";
+    document.title = strings.pageTitle;
+    document.querySelector('meta[name="description"]').content = strings.pageDescription;
+    document.querySelector('meta[property="og:title"]').content = strings.pageTitle;
+    document.querySelector('meta[property="og:description"]').content = strings.pageDescription;
+    document.querySelectorAll("[data-i18n]").forEach(element => {
+      const value = strings[element.dataset.i18n];
+      if (value !== undefined) element.textContent = value;
+    });
+    document.querySelectorAll("[data-i18n-aria]").forEach(element => {
+      element.setAttribute("aria-label", strings[element.dataset.i18nAria]);
+    });
+    document.querySelectorAll("[data-language]").forEach(button => {
+      button.setAttribute("aria-pressed", String(button.dataset.language === language));
+    });
+    document.querySelectorAll("[data-screenshot]").forEach(image => {
+      const name = image.dataset.screenshot;
+      image.src = `./assets/${name}-${language}.jpg`;
+      image.alt = strings[`${name}Alt`];
+    });
+    document.querySelectorAll("[data-screenshot-link]").forEach(link => {
+      link.href = `./assets/${link.dataset.screenshotLink}-${language}.jpg`;
+    });
+    document.getElementById("apple-help").href = language === "en"
+      ? "https://support.apple.com/en-us/102445" : "https://support.apple.com/zh-cn/102445";
+    clearTimeout(copyTimeout);
+    if (persist) {
+      try { localStorage.setItem("simlaunch-site-language", language); } catch { /* Storage is optional. */ }
+      try {
+        const url = new URL(location.href);
+        url.searchParams.set("lang", language);
+        history.replaceState(null, "", url);
+      } catch { /* Local file previews may not support history updates. */ }
+    }
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.add("visible");
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toast.classList.remove("visible"), 4000);
+  }
+
+  document.querySelectorAll("[data-language]").forEach(button => {
+    button.addEventListener("click", () => setLanguage(button.dataset.language, true));
+  });
+
+  document.getElementById("copy-command").addEventListener("click", async () => {
+    const button = document.getElementById("copy-command");
+    button.disabled = true;
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(commands);
+      button.querySelector("span").textContent = translations[language].copied;
+      showToast(translations[language].copySuccess);
+      clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => {
+        button.querySelector("span").textContent = translations[language].copy;
+      }, 2500);
+    } catch {
+      showToast(translations[language].copyFailure);
+      const range = document.createRange();
+      range.selectNodeContents(document.getElementById("brew-command"));
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  const requested = new URLSearchParams(location.search).get("lang");
+  let saved;
+  try { saved = localStorage.getItem("simlaunch-site-language"); } catch { /* Storage is optional. */ }
+  const preferred = [requested, saved].find(value => value === "zh" || value === "en");
+  setLanguage(preferred || ((navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en"));
+  document.querySelector(".hero-copy").classList.add("reveal");
+})();

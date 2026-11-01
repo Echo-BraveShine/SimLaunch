@@ -5,7 +5,7 @@ SimLaunch 是图形应用，使用 Homebrew Cask 安装已编译的 Release ZIP�
 ## 首次启用
 
 1. 将包含本次改动的代码提交并推送到 GitHub。
-2. 从该提交创建新的 `vX.Y.Z` 标签并推送，触发 Release。
+2. 确认根目录 `Info.plist` 的版本号已更新，从该提交创建与之匹配的新 `vX.Y.Z` 标签并推送，触发 Release。
 3. 确认 `release` 和 `update-homebrew` 两个任务均成功，默认分支出现 `Casks/simlaunch.rb`。
 
 当前接入不会替已有 Release 补附件。在首个包含 Cask 的版本发布成功、生成文件写回默认分支之前，以下安装命令不可用。
@@ -32,7 +32,7 @@ Cask 声明 `auto_updates true`，因为正式版包含 Sparkle。Homebrew 默�
 
 已有手动安装的同名应用可能与 Homebrew 安装冲突；先退出应用，妥善保留旧包，再移走 `/Applications/SimLaunch.app` 后安装。Homebrew 不会自动安装 Xcode、Android SDK 或 DevEco Studio。
 
-Homebrew 安装不替代 Apple 签名与公证，未公证应用仍可能被 macOS 拦截。
+Homebrew 安装不替代 Apple 签名与公证。当前发布版首次打开可能被 macOS 拦截，需要在“系统设置 → 隐私与安全性”中点击“仍要打开”，具体步骤见 [README 的首次打开说明](../README.md#首次打开允许-macos-安全提示)。
 
 ## 自动维护
 

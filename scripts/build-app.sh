@@ -15,24 +15,7 @@ mkdir -p "$APP/Contents/Resources"
 ditto "$BIN_DIR/SimLaunch_SimLaunchCore.bundle" "$APP/Contents/Resources/SimLaunch_SimLaunchCore.bundle"
 ditto "$BIN_DIR/SimLaunch_SimLaunch.bundle" "$APP/Contents/Resources/SimLaunch_SimLaunch.bundle"
 cp .build/Branding/SimLaunch.icns "$APP/Contents/Resources/SimLaunch.icns"
-cat > "$APP/Contents/Info.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>CFBundleExecutable</key><string>SimLaunch</string>
-<key>CFBundleIconFile</key><string>SimLaunch.icns</string>
-<key>CFBundleIdentifier</key><string>dev.ekko.simlaunch</string>
-<key>CFBundleDevelopmentRegion</key><string>en</string>
-<key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string></array>
-<key>CFBundleName</key><string>SimLaunch</string>
-<key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>CFBundleVersion</key><string>1</string>
-<key>LSMinimumSystemVersion</key><string>13.0</string>
-<key>LSUIElement</key><true/>
-<key>NSHighResolutionCapable</key><true/>
-</dict></plist>
-PLIST
+cp Info.plist "$APP/Contents/Info.plist"
 python3 scripts/configure-bundle.py
 if [[ "${SIMLAUNCH_ENABLE_SPARKLE:-0}" == "1" ]]; then
     FRAMEWORK=$(find .build/artifacts -type d -name Sparkle.framework -print -quit)

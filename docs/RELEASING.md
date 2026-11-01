@@ -76,7 +76,7 @@ https://github.com/Echo-BraveShine/SimLaunch/releases/latest/download/appcast.xm
 
 ## 4. 发布一个正式版本
 
-先确保代码与工作流已提交、推送。之后执行，例如：
+先将根目录 `Info.plist` 的 `CFBundleShortVersionString` 改为本次版本（例如 `0.1.1`），确保代码与工作流已提交、推送。之后创建与之匹配的标签，例如：
 
 ```sh
 git tag -a v0.1.1 -m "SimLaunch 0.1.1"
@@ -85,7 +85,7 @@ git push origin v0.1.1
 
 仅支持 `v主版本.次版本.修订版本` 稳定版标签，当前不支持 beta / rc 通道。也可从 Actions 手动运行 Release 工作流，但必须选择一个符合规则的版本标签，不能选择 main。
 
-工作流使用 `macos-26` runner 上的 Xcode，需包含 macOS 26+ SDK。`APP_VERSION` 来自标签，`APP_BUILD` 为 Release 工作流的 `GITHUB_RUN_NUMBER + 1`，用于 Sparkle 比较新旧版本。保持同一发布工作流且确保构建号递增；本地默认构建号为 1。不要重新打包并覆盖已发布的同一版本，修复应使用新标签。
+工作流使用 `macos-26` runner 上的 Xcode，需包含 macOS 26+ SDK。版本号唯一来源是根目录 `Info.plist` 的 `CFBundleShortVersionString`；`APP_VERSION` 读取该值后用于归档命名，标签不一致时立即停止。设置 `APP_VERSION` 环境变量不能覆盖源文件中的版本，值不一致时打包会报错。`APP_BUILD` 为 Release 工作流的 `GITHUB_RUN_NUMBER + 1`，用于 Sparkle 比较新旧版本；本地未设置时使用源文件的 `CFBundleVersion`。保持同一发布工作流且确保构建号递增。不要重新打包并覆盖已发布的同一版本，修复应修改源文件版本并使用新标签。
 
 Release 包含：
 
@@ -115,7 +115,6 @@ python3 -m unittest discover -s scripts/tests -v
 ```sh
 export SIMLAUNCH_ENABLE_SPARKLE=1
 export SPARKLE_PUBLIC_ED_KEY='你的公钥'
-export APP_VERSION=0.1.1
 export APP_BUILD=2
 export APP_ARCHITECTURES=universal
 ./scripts/build-app.sh

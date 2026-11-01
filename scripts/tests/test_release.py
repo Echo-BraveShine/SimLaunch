@@ -48,18 +48,20 @@ class ReleaseTests(unittest.TestCase):
     def test_local_bundle_has_no_updater_key(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'Info.plist'
-            path.write_bytes(plistlib.dumps({'CFBundleIdentifier': 'dev.ekko.simlaunch'}))
+            path.write_bytes((ROOT / 'Info.plist').read_bytes())
             module('configure-bundle').configure(path, {})
             info = plistlib.loads(path.read_bytes())
             self.assertEqual(info['CFBundleIdentifier'], 'dev.ekko.simlaunch')
-            self.assertEqual(info['CFBundleVersion'], '1')
+            source = plistlib.loads((ROOT / 'Info.plist').read_bytes())
+            self.assertEqual(info['CFBundleShortVersionString'], source['CFBundleShortVersionString'])
+            self.assertEqual(info['CFBundleVersion'], source['CFBundleVersion'])
             self.assertNotIn('SUPublicEDKey', info)
 
     def test_release_requires_key_and_versions(self):
         configure = module('configure-bundle').configure
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'Info.plist'
-            path.write_bytes(plistlib.dumps({}))
+            path.write_bytes(plistlib.dumps({'CFBundleShortVersionString': '1.2.3', 'CFBundleVersion': '1'}))
             with self.assertRaises(ValueError):
                 configure(path, {'SIMLAUNCH_ENABLE_SPARKLE': '1'})
             with self.assertRaises(ValueError):
@@ -71,6 +73,18 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(info['CFBundleVersion'], '42')
             self.assertFalse(info['SUAutomaticallyUpdate'])
             self.assertTrue(info['SUFeedURL'].startswith('https://github.com/Echo-BraveShine/SimLaunch/'))
+
+    def test_release_tag_must_match_source_version(self):
+        read_info = module('configure-bundle').read_info
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'Info.plist'
+            path.write_bytes(plistlib.dumps({'CFBundleShortVersionString': '2.3.4'}))
+            self.assertEqual(read_info(path, 'v2.3.4')['CFBundleShortVersionString'], '2.3.4')
+            for tag in ('v2.3.5', '2.3.4', 'v2.3.4-beta'):
+                with self.assertRaises(ValueError):
+                    read_info(path, tag)
+            with self.assertRaises(ValueError):
+                module('configure-bundle').configure(path, {'APP_VERSION': '9.9.9'})
 
     def test_appcast_identifies_exact_archive_and_version(self):
         generate = module('create-appcast').generate
