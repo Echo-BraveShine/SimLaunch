@@ -75,3 +75,7 @@
 "Language, startup and app preferences" = "语言、启动与应用偏好";
 "Choose the display language for SimLaunch." = "选择 SimLaunch 的显示语言。";
 "Changes apply immediately." = "更改会立即生效。";
+"Software updates" = "软件更新";
+"Check for updates…" = "检查更新…";
+"In-app updates are available in configured release builds." = "已配置更新源的发布版支持应用内更新。";
+"View releases" = "查看发布版本";

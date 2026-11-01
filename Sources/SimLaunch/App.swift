@@ -111,7 +111,12 @@ import SimLaunchCore
 }
 
 @main struct SimLaunchApp: App {
-    @StateObject private var store = Store()
+    @StateObject private var store: Store
+    private let updates = UpdateController.shared
+    init() {
+        AppPreferences.migrateIfNeeded()
+        _store = StateObject(wrappedValue: Store())
+    }
     @AppStorage("appLanguage") private var language = "system"
     var body: some Scene {
         Window(language == "zh-Hans" || (language == "system" && L10n.language == "zh-Hans") ? "SimLaunch 设备" : "SimLaunch Devices", id: "devices") {
@@ -242,6 +247,7 @@ struct Panel: View {
 
 }
 struct SettingsView: View {
+    @ObservedObject private var updates = UpdateController.shared
     @StateObject private var loginItem = LoginItemController()
     @EnvironmentObject var store: Store
     @AppStorage("appLanguage") private var language = "system"
@@ -407,6 +413,24 @@ struct SettingsView: View {
                     }.labelsHidden().pickerStyle(.menu).frame(width: 140)
                 }.padding(20)
             }.background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.07)))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 14) {
+                    Image(systemName: "arrow.triangle.2.circlepath").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(L10n.text("Software updates")).font(.system(size: 13, weight: .semibold))
+                        Text("SimLaunch \(updates.version) (\(updates.build))").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button(L10n.text("Check for updates…")) { updates.checkForUpdates() }.disabled(!updates.canCheck)
+                }
+                if !updates.configured {
+                    Text(L10n.text("In-app updates are available in configured release builds."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Button(L10n.text("View releases")) { updates.openReleases() }.buttonStyle(.link).font(.caption)
+            }.padding(20)
+                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.07)))
             Label(L10n.text("Changes apply immediately."), systemImage: "info.circle")
                 .font(.caption).foregroundStyle(.secondary)

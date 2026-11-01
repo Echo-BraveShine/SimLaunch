@@ -182,3 +182,22 @@ final class LocalizationTests: XCTestCase {
         }
     }
 }
+
+final class PreferencesMigrationTests: XCTestCase {
+    func testMigrationPreservesExistingSettingsAndRunsOnce() throws {
+        let suite = "SimLaunch-MigrationTests-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("en", forKey: "appLanguage")
+        let old: [String: Any] = ["appLanguage": "zh-Hans", "recentDeviceIDs": ["iOS:device"], "configuration": Data([1, 2, 3]), "unrelated": "ignored"]
+        AppPreferences.migrateIfNeeded(in: defaults, legacyDomain: old)
+        XCTAssertEqual(defaults.string(forKey: "appLanguage"), "en")
+        XCTAssertEqual(defaults.stringArray(forKey: "recentDeviceIDs"), ["iOS:device"])
+        XCTAssertEqual(defaults.data(forKey: "configuration"), Data([1, 2, 3]))
+        XCTAssertNil(defaults.object(forKey: "unrelated"))
+        defaults.removeObject(forKey: "recentDeviceIDs")
+        AppPreferences.migrateIfNeeded(in: defaults, legacyDomain: old)
+        XCTAssertNil(defaults.object(forKey: "recentDeviceIDs"))
+        XCTAssertEqual(AppPreferences.bundleIdentifier, "dev.ekko.simlaunch")
+    }
+}

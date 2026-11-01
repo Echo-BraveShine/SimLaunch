@@ -1,0 +1,93 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: simlaunch-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      SIMLAUNCH_ENABLE_SPARKLE: '1'
+      APP_ARCHITECTURES: universal
+      SPARKLE_PUBLIC_ED_KEY: ${{ vars.SPARKLE_PUBLIC_ED_KEY }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release configuration
+        env:
+          UPDATE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          [[ "$GITHUB_REF_TYPE" == tag ]] || { echo 'Select a vMAJOR.MINOR.PATCH tag'; exit 1; }
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Stable semantic version tag required'; exit 1; }
+          [[ -n "$SPARKLE_PUBLIC_ED_KEY" && -n "$UPDATE_PRIVATE_KEY" ]] || { echo 'Configure Sparkle signing keys before releasing'; exit 1; }
+          echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          echo "APP_BUILD=$((GITHUB_RUN_NUMBER + 1))" >> "$GITHUB_ENV"
+          xcodebuild -version
+      - run: python3 -m unittest discover -s scripts/tests -v
+      - name: Test with release dependency
+        run: swift test
+      - name: Import optional Apple signing identity
+        env:
+          CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          SIGNING_IDENTITY: ${{ vars.CODESIGN_IDENTITY }}
+        run: |
+          if [[ -n "$CERTIFICATE_P12" ]]; then
+            [[ -n "$SIGNING_IDENTITY" ]] || { echo 'Set CODESIGN_IDENTITY'; exit 1; }
+            umask 077
+            KEYCHAIN="$RUNNER_TEMP/simlaunch-signing.keychain-db"
+            KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+            echo "::add-mask::$KEYCHAIN_PASSWORD"
+            printf '%s' "$CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN"
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+            security import "$RUNNER_TEMP/certificate.p12" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+            security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+            security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+            echo "CODESIGN_IDENTITY=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
+            rm "$RUNNER_TEMP/certificate.p12"
+          fi
+      - name: Build universal app
+        run: ./scripts/build-app.sh
+      - name: Notarize when Developer ID signing is enabled
+        env:
+          NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+        run: |
+          if [[ -n "${CODESIGN_IDENTITY:-}" ]]; then
+            [[ -n "$NOTARY_KEY_P8" && -n "$NOTARY_KEY_ID" && -n "$NOTARY_ISSUER_ID" ]] || { echo 'Configure Apple notarization credentials'; exit 1; }
+            umask 077
+            printf '%s' "$NOTARY_KEY_P8" > "$RUNNER_TEMP/notary.p8"
+            ditto -c -k --sequesterRsrc --keepParent dist/SimLaunch.app "$RUNNER_TEMP/notarize.zip"
+            xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" --wait
+            xcrun stapler staple dist/SimLaunch.app
+          fi
+      - name: Package and verify
+        run: |
+          lipo -verify_arch arm64 x86_64 dist/SimLaunch.app/Contents/MacOS/SimLaunch
+          codesign --verify --deep --strict dist/SimLaunch.app
+          ditto -c -k --sequesterRsrc --keepParent dist/SimLaunch.app "dist/SimLaunch-$APP_VERSION-universal.zip"
+          shasum -a 256 "dist/SimLaunch-$APP_VERSION-universal.zip" > dist/SHA256SUMS.txt
+      - name: Sign archive and build appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: python3 scripts/create-appcast.py
+      - name: Publish GitHub release
+        run: |
+          gh release create "$GITHUB_REF_NAME" "dist/SimLaunch-$APP_VERSION-universal.zip" dist/appcast.xml dist/SHA256SUMS.txt --verify-tag --generate-notes --draft --title "SimLaunch $APP_VERSION"
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+      - name: Clean signing files
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/certificate.p12"
+          if [[ -f "$RUNNER_TEMP/simlaunch-signing.keychain-db" ]]; then
+            security delete-keychain "$RUNNER_TEMP/simlaunch-signing.keychain-db"
+          fi

@@ -75,3 +75,7 @@
 "Language, startup and app preferences" = "Language, startup and app preferences";
 "Choose the display language for SimLaunch." = "Choose the display language for SimLaunch.";
 "Changes apply immediately." = "Changes apply immediately.";
+"Software updates" = "Software updates";
+"Check for updates…" = "Check for updates…";
+"In-app updates are available in configured release builds." = "In-app updates are available in configured release builds.";
+"View releases" = "View releases";

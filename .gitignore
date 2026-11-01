@@ -3,3 +3,9 @@
 .swiftpm/
 dist/
 .DS_Store
+
+__pycache__/
+*.pyc
+*.p12
+*.p8
+private-key*.txt

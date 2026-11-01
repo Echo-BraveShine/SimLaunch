@@ -2,7 +2,9 @@
 
 SimLaunch 是使用 SwiftUI 编写的 macOS 模拟器管理工具，提供设备主窗口和菜单栏入口，用于查询、启动和停止 iOS、Android、HarmonyOS 模拟器。
 
-项目通过 Swift Package 管理，没有第三方 Swift 包依赖。各平台功能仍依赖本机安装的 Xcode、Android SDK 或 DevEco Studio；SimLaunch 不负责创建模拟器、下载 SDK、安装系统镜像或接受开发工具许可。
+当前应用 Bundle ID 为 `dev.ekko.simlaunch`。
+
+项目通过 Swift Package 管理，默认开发模式没有第三方 Swift 包依赖；正式更新版通过 `SIMLAUNCH_ENABLE_SPARKLE=1` 启用固定版本的 Sparkle 2.10.1。各平台功能仍依赖本机安装的 Xcode、Android SDK 或 DevEco Studio；SimLaunch 不负责创建模拟器、下载 SDK、安装系统镜像或接受开发工具许可。
 
 ## 环境要求
 
@@ -33,7 +35,7 @@ swift test
 open dist/SimLaunch.app
 ```
 
-打包脚本使用 macOS 自带的 sips、iconutil、ditto 和 codesign，生成临时签名（ad hoc）的 `dist/SimLaunch.app`，并尝试刷新该路径的系统应用注册。它不会生成通用二进制，也不执行 Developer ID 签名或 Apple 公证；正式分发应另行配置签名和公证流程。
+打包脚本使用 macOS 自带的 sips、iconutil、ditto 和 codesign，生成临时签名（ad hoc）的 `dist/SimLaunch.app`，并尝试刷新该路径的系统应用注册。本地默认生成本机架构二进制；设置 `APP_ARCHITECTURES=universal` 可生成 arm64 / x86_64 通用包。正式发布工作流支持更新归档签名，以及可选的 Developer ID 签名和 Apple 公证，详见 [发布说明](docs/RELEASING.md)。
 
 应用包设置了 `LSUIElement`，作为菜单栏应用运行，不常驻 Dock。打开应用会显示设备主窗口，也可通过菜单栏使用；齿轮按钮打开设置。
 
@@ -150,7 +152,11 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 
 本机此前已验证三平台列表查询、iOS 设备启动及 Device Hub 窗口显示，并检查过设置页、语言切换和图标显示。设备数量、SDK 版本和可用运行时取决于本机环境，不作为功能保证。完整三平台启动／停止／冷启动／删除、登录后自动启动以及跨 macOS 版本兼容性仍需进一步验证。
 
-当前不提供模拟器创建、系统镜像管理、截图或自动更新。
+当前不提供模拟器创建、系统镜像管理或截图。设置 → 通用已加入软件更新入口；应用内安装更新需要已配置 Sparkle 的正式构建和可访问的 Release 更新源，默认开发包仅提供发布页下载入口。完整自动更新链路尚待首次真实发布验证。
+
+## Release 与更新
+
+已加入 GitHub Actions：main / PR 运行测试和打包；推送 `vX.Y.Z` 标签生成通用应用、签名更新归档，并发布 GitHub Release。需要先配置仓库密钥，操作步骤、凭据清单和验证边界见 [docs/RELEASING.md](docs/RELEASING.md)。Sparkle 2.10.1 已下载，启用 Sparkle 的 Debug 可执行文件已编译通过；正式通用包、远程工作流和跨版本升级仍需在凭据配置完成后验证。
 
 ## 源码入口
 

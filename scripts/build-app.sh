@@ -2,8 +2,12 @@
 set -euo pipefail
 cd "${0:A:h}/.."
 ./scripts/build-icon.sh
-swift build -c release
-BIN_DIR=$(swift build -c release --show-bin-path)
+BUILD_ARGS=(-c release)
+if [[ "${APP_ARCHITECTURES:-native}" == "universal" ]]; then
+    BUILD_ARGS+=(--arch arm64 --arch x86_64)
+fi
+swift build "${BUILD_ARGS[@]}"
+BIN_DIR=$(swift build "${BUILD_ARGS[@]}" --show-bin-path)
 APP="$PWD/dist/SimLaunch.app"
 mkdir -p "$APP/Contents/MacOS"
 cp "$BIN_DIR/SimLaunch" "$APP/Contents/MacOS/SimLaunch"
@@ -17,7 +21,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <plist version="1.0"><dict>
 <key>CFBundleExecutable</key><string>SimLaunch</string>
 <key>CFBundleIconFile</key><string>SimLaunch.icns</string>
-<key>CFBundleIdentifier</key><string>dev.simlaunch.app</string>
+<key>CFBundleIdentifier</key><string>dev.ekko.simlaunch</string>
 <key>CFBundleDevelopmentRegion</key><string>en</string>
 <key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string></array>
 <key>CFBundleName</key><string>SimLaunch</string>
@@ -29,7 +33,21 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
-codesign --force --sign - "$APP"
+python3 scripts/configure-bundle.py
+if [[ "${SIMLAUNCH_ENABLE_SPARKLE:-0}" == "1" ]]; then
+    FRAMEWORK=$(find .build/artifacts -type d -name Sparkle.framework -print -quit)
+    [[ -n "$FRAMEWORK" ]] || { echo "Sparkle.framework missing" >&2; exit 1; }
+    mkdir -p "$APP/Contents/Frameworks"
+    ditto "$FRAMEWORK" "$APP/Contents/Frameworks/Sparkle.framework"
+    LICENSE_FILE=$(find .build/checkouts -maxdepth 2 -type f -iname LICENSE -ipath '*sparkle*' -print -quit)
+    [[ -n "$LICENSE_FILE" ]] || { echo "Sparkle license missing" >&2; exit 1; }
+    mkdir -p "$APP/Contents/Resources/ThirdPartyNotices"
+    cp "$LICENSE_FILE" "$APP/Contents/Resources/ThirdPartyNotices/Sparkle-LICENSE.txt"
+else
+    # A local build must not retain a framework from an earlier release build.
+    rm -rf "$APP/Contents/Frameworks/Sparkle.framework"
+fi
+python3 scripts/sign-app.py
 # Notify Finder / Launch Services when rebuilding an app at the same path.
 touch "$APP"
 REGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
