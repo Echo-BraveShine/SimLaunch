@@ -21,6 +21,8 @@ import SimLaunchCore
     private let store: Store
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let popover = NSPopover()
+    private let panelHost = NSHostingController(rootView: AnyView(EmptyView()))
+    private var listHeight: CGFloat = 480
     private var settingsWindow: NSWindow?
     private var preferencesObserver: NSObjectProtocol?
     private var menuLanguage = ""
@@ -37,8 +39,8 @@ import SimLaunchCore
         }
         popover.behavior = .transient
         popover.animates = false
-        popover.contentViewController = NSHostingController(rootView:
-            Panel(openSettings: { [weak self] in self?.showSettings() }).environmentObject(store))
+        updatePanel()
+        popover.contentViewController = panelHost
         configureMenus()
         applyAppearance()
         preferencesObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -55,20 +57,41 @@ import SimLaunchCore
         else { showDevices() }
     }
 
-    func showDevices(remainingAttempts: Int = 10) {
+    func showDevices(remainingAttempts: Int = 20) {
         guard !popover.isShown else { return }
-        guard let button = statusItem.button, button.window != nil else {
+        // The status item's window exists before the menu bar gives it a real frame.
+        // Waiting only for a non-nil window can anchor the launch popover at (0, 0).
+        guard let button = statusItem.button, let window = button.window,
+              window.frame.height > 0, let screen = window.screen,
+              screen.frame.intersects(window.frame) else {
             if remainingAttempts > 0 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in self?.showDevices(remainingAttempts: remainingAttempts - 1) }
             }
             return
         }
         applyAppearance()
+        let buttonFrame = window.convertToScreen(button.convert(button.bounds, to: nil))
+        // Anchor below the entire menu bar, rather than the inset icon button.
+        // Use this window's screen so secondary displays and scaled screens work too.
+        let top = min(buttonFrame.minY, window.frame.minY, screen.visibleFrame.maxY) - 6
+        let distance = buttonFrame.minY - top
+        let anchor = button.bounds.offsetBy(dx: 0, dy: button.isFlipped ? distance : -distance)
+        let panelChrome = panelHost.view.fittingSize.height - listHeight
+        let availableHeight = top - screen.visibleFrame.minY - 30 // Reserve the popover frame and arrow.
+        let height = max(0, min(480, availableHeight - panelChrome))
+        if height != listHeight {
+            listHeight = height
+            updatePanel()
+        }
+        popover.contentSize = panelHost.view.fittingSize
         NSApp.activate(ignoringOtherApps: true)
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.show(relativeTo: anchor, of: button, preferredEdge: .minY)
         applyAppearance()
         popover.contentViewController?.view.window?.makeKey()
+    }
 
+    private func updatePanel() {
+        panelHost.rootView = AnyView(Panel(openSettings: { [weak self] in self?.showSettings() }, listHeight: listHeight).environmentObject(store))
     }
 
     @objc private func showSettings() {

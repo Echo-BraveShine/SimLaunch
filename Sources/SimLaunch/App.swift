@@ -13,7 +13,7 @@ import SimLaunchCore
     @Published var busy: Set<String> = []
     @Published private(set) var recentDeviceIDs: [String] = UserDefaults.standard.stringArray(forKey: "recentDeviceIDs") ?? []
     var recentDevices: [Device] {
-        recentDeviceIDs.compactMap { id in devices.first { $0.id == id && $0.state != .unavailable } }
+        Array(recentDeviceIDs.compactMap { id in devices.first { $0.id == id && $0.state != .unavailable } }.prefix(5))
     }
     private func recordUsage(_ id: String) {
         recentDeviceIDs.removeAll { $0 == id }
@@ -132,6 +132,7 @@ import SimLaunchCore
 }
 struct Panel: View {
     var openSettings: () -> Void
+    var listHeight: CGFloat = 480
     @AppStorage("appLanguage") private var language = "system"
     @State private var deletionCandidate: Device?
     @EnvironmentObject var store: Store
@@ -178,7 +179,7 @@ struct Panel: View {
                     }
                     ForEach(store.errors, id: \.self) { Text($0).font(.caption).foregroundStyle(.red).textSelection(.enabled) }
                 }
-            }.frame(height: 480)
+            }.frame(height: listHeight)
             Divider()
             HStack { Text(L10n.text("仅管理模拟器")).font(.caption).foregroundStyle(.secondary); Spacer(); Button(L10n.text("退出")) { NSApp.terminate(nil) } }
         }.padding().frame(width: 400)
@@ -251,7 +252,7 @@ struct SettingsView: View {
     @EnvironmentObject var store: Store
     @AppStorage("appLanguage") private var language = "system"
     @AppStorage(AppAppearance.storageKey) private var appearance = AppAppearance.system
-    @State private var selected: Platform? = .iOS
+    @State private var selected: Platform? = nil
     @State private var draft = Configuration()
     @State private var saved = false
 
@@ -314,6 +315,10 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(selected?.rawValue ?? L10n.text("General")).font(.system(size: 23, weight: .semibold))
                         Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
+                        if selected == nil {
+                            Label(L10n.text("Changes apply immediately."), systemImage: "info.circle")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                 }.padding(.bottom, 24)
                 if selected == nil {
@@ -476,8 +481,6 @@ struct SettingsView: View {
                     .modifier(AdaptiveCard())
                     .help(AppBrand.supportURL.absoluteString)
                     .accessibilityHint(L10n.text("Open Buy Me a Coffee in your default browser."))
-                Label(L10n.text("Changes apply immediately."), systemImage: "info.circle")
-                    .font(.caption).foregroundStyle(.secondary)
             }.padding(.bottom, 4)
         }
     }
