@@ -18,6 +18,17 @@ SimLaunch 是使用 SwiftUI 编写的 macOS 模拟器管理工具，提供设备
 
 `Package.swift` 中的 `swift-tools-version: 5.9` 是包清单的工具版本声明，不代表使用旧版 Xcode / SDK 即可编译当前源码。
 
+## Homebrew 安装
+
+已接入自定义 Homebrew Cask 分发。需先将本次改动推送并成功发布一个新版本，确认工作流已在默认分支生成 `Casks/simlaunch.rb`，之后可执行：
+
+```sh
+brew tap echo-braveshine/simlaunch https://github.com/Echo-BraveShine/SimLaunch.git
+brew install --cask echo-braveshine/simlaunch/simlaunch
+```
+
+这会安装 Release 应用包，SDK 仍需单独准备。升级、卸载及自动维护说明见 [Homebrew 说明](docs/HOMEBREW.md)。
+
 ## 构建与运行
 
 在项目根目录执行：

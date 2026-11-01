@@ -1,10 +1,12 @@
 import base64
+import hashlib
 import importlib.util
 from pathlib import Path
 import plistlib
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -17,6 +19,32 @@ def module(name):
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_cask_uses_archive_checksum_and_bundle_metadata(self):
+        generate = module('create-cask').generate
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / 'SimLaunch-1.2.3-universal.zip'
+            info = {'CFBundleIdentifier': 'dev.ekko.simlaunch',
+                    'CFBundleShortVersionString': '1.2.3',
+                    'LSMinimumSystemVersion': '13.0'}
+            with zipfile.ZipFile(archive, 'w') as bundle:
+                bundle.writestr('SimLaunch.app/Contents/Info.plist', plistlib.dumps(info))
+            cask = generate(archive)
+            self.assertIn('version "1.2.3"', cask)
+            self.assertIn(hashlib.sha256(archive.read_bytes()).hexdigest(), cask)
+            self.assertIn('depends_on macos: :ventura', cask)
+            self.assertIn('app "SimLaunch.app"', cask)
+            self.assertIn('/v#{version}/SimLaunch-#{version}-universal.zip', cask)
+            self.assertNotIn(':no_check', cask)
+            wrong_name = archive.with_name('SimLaunch-2.0.0-universal.zip')
+            archive.rename(wrong_name)
+            with self.assertRaises(ValueError):
+                generate(wrong_name)
+            info['CFBundleShortVersionString'] = '1.2.3"; system("bad")'
+            with zipfile.ZipFile(archive, 'w') as bundle:
+                bundle.writestr('SimLaunch.app/Contents/Info.plist', plistlib.dumps(info))
+            with self.assertRaises(ValueError):
+                generate(archive)
+
     def test_local_bundle_has_no_updater_key(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'Info.plist'

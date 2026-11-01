@@ -92,6 +92,7 @@ Release 包含：
 - `SimLaunch-X.Y.Z-universal.zip`：仅包含 SimLaunch.app，含 arm64 和 x86_64。
 - `appcast.xml`：该版本的更新源、最低系统版本、下载地址、长度与 Ed25519 签名。
 - `SHA256SUMS.txt`：下载归档的 SHA-256，供人工校验。
+- `simlaunch.rb`：该归档的 Homebrew Cask，包含精确版本和 SHA-256。发布后 `update-homebrew` 任务将其提交到默认分支，详见 [Homebrew 说明](HOMEBREW.md)。
 
 先创建草稿、上传附件，再发布并标记 latest，避免用户读到尚未上传归档的更新源。如果发布失败留下草稿，修复后应先人工检查该草稿和失败步骤，不要覆盖已经公开的归档。
 
@@ -118,7 +119,12 @@ export APP_VERSION=0.1.1
 export APP_BUILD=2
 export APP_ARCHITECTURES=universal
 ./scripts/build-app.sh
+lipo dist/SimLaunch.app/Contents/MacOS/SimLaunch -archs
+lipo dist/SimLaunch.app/Contents/MacOS/SimLaunch -verify_arch arm64
+lipo dist/SimLaunch.app/Contents/MacOS/SimLaunch -verify_arch x86_64
 ```
+
+应用文件路径放在 `-verify_arch` 之前，并分别校验两个架构，以兼容不同版本的 Xcode 工具。发布流程修复后，需提交并推送修改，再从包含修复的新版本标签发布；直接重跑旧标签的任务仍会使用旧代码。
 
 以上只构建应用，不发布。要验证完整升级，保留较旧构建号的正式包，发布较高构建号的版本后，从旧包执行检查更新；检查更新签名、版本号、用户确认、安装位置、重启、配置和登录项状态。请用测试应用副本操作。
 
