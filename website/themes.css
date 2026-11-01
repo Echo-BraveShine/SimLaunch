@@ -1,0 +1,119 @@
+.nav-preferences {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.footer > div { flex-wrap: wrap; row-gap: 12px; }
+
+.theme-switch {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.theme-switch button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #6a7e73;
+}
+
+.theme-switch svg { width: 15px; height: 15px; }
+.theme-switch button:hover { color: var(--green); }
+.theme-switch button[aria-pressed="true"] { background: #e6efea; color: var(--green); }
+:root { color-scheme: light; }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #141c1b;
+  --ink: #e6eeea;
+  --muted: #a6b7b0;
+  --green: #78d8c5;
+  --line: #30413a;
+}
+
+html[data-theme="dark"] .site-header { background: #141c1bef; border-bottom-color: var(--line); }
+html[data-theme="dark"] .nav-links { color: #b3c4bb; }
+html[data-theme="dark"] .theme-switch button,
+html[data-theme="dark"] .language-switch button { color: #a7bab0; }
+html[data-theme="dark"] .language-switch > span { color: #647d6f; }
+html[data-theme="dark"] .theme-switch button[aria-pressed="true"],
+html[data-theme="dark"] .language-switch button[aria-pressed="true"] { background: #2c4339; color: #9be4cf; }
+html[data-theme="dark"] .live-dot { background: #78d8c5; box-shadow: 0 0 0 4px #213d34; }
+html[data-theme="dark"] .button-primary { background: #8fe0cd; color: #112f27; box-shadow: 0 3px 8px #0002; }
+html[data-theme="dark"] .button-primary:hover { background: #a4ecd9; }
+html[data-theme="dark"] .hero-meta,
+html[data-theme="dark"] .platform-strip > span { color: #9db0a7; }
+html[data-theme="dark"] .hero-art::before {
+  background: radial-gradient(ellipse at 50% 48%, #244a3c88 0%, #1d332d66 38%, #141c1b00 72%);
+}
+html[data-theme="dark"] .orbit { border-color: #4c79624d; }
+html[data-theme="dark"] .platform-name { color: #b4c7bc; }
+html[data-theme="dark"] .platform-divider { color: #51665a; }
+html[data-theme="dark"] .feature-card { background: #1c2723; }
+html[data-theme="dark"] .feature-main { background: #20352b; border-color: #324e40; }
+html[data-theme="dark"] .card-number { color: #98b0a0; }
+html[data-theme="dark"] .feature-symbol { color: #82a98f; }
+html[data-theme="dark"] .native-icon { background: #23332c; border-color: #3a4e40; }
+html[data-theme="dark"] .native-badge { color: #a7bead; }
+html[data-theme="dark"] .install-section { background: #18231e; border-color: var(--line); }
+html[data-theme="dark"] .download-card { background: #1d2b24; border-color: #354c3d; }
+html[data-theme="dark"] .download-mark { color: #91cba7; }
+html[data-theme="dark"] .download-footnote { color: #a0b09a; }
+html[data-theme="dark"] .terminal-card { background: #0c1712; border-color: #33463b; }
+html[data-theme="dark"] .security-note { background: #262d22; border-color: #424f35; }
+html[data-theme="dark"] .security-note strong { color: #dde5d0; }
+html[data-theme="dark"] .security-note p { color: #b8c4a7; }
+html[data-theme="dark"] .security-icon { color: #c0cba8; border-color: #899b73; }
+html[data-theme="dark"] .security-note .text-link { color: #c4dca2; }
+html[data-theme="dark"] summary::after { color: #adc4ad; }
+html[data-theme="dark"] .footer { color: #a6b7a2; }
+html[data-theme="dark"] .screenshot-caption,
+html[data-theme="dark"] .settings-screenshot figcaption { color: #9bad9f; }
+html[data-theme="dark"] .hero-screenshot img { border-color: #364c40; box-shadow: 0 24px 60px -20px #0008; }
+html[data-theme="dark"] .settings-screenshot { background: #1d2a23; border-color: #344d3d; }
+html[data-theme="dark"] .settings-screenshot img { box-shadow: 0 14px 30px -15px #0008; }
+html[data-theme="dark"] .toast { background: #d2eadd; color: #19352f; }
+html[data-theme="dark"] .skip-link { background: #d2eadd; color: #19352f; }
+
+/* Wait for the real dark capture rather than briefly showing the light one. */
+html[data-theme="dark"] img[data-screenshot]:not([src$="-dark.jpg"]) { visibility: hidden; }
+
+@media (max-width: 1000px) {
+  .nav { gap: 22px; }
+  .nav-links { gap: 22px; }
+  .nav-preferences { gap: 9px; }
+}
+
+@media (max-width: 760px) {
+  .nav { gap: 14px; }
+  .nav-links { display: none; }
+  .nav-preferences { margin-left: auto; gap: 8px; }
+  .theme-switch button { width: 24px; }
+}
+
+@media (max-width: 390px) {
+  .nav { gap: 10px; }
+  .nav .wordmark { font-size: 16px; gap: 6px; }
+  .nav .wordmark img { width: 26px; }
+  .theme-switch button { width: 22px; }
+  .nav-preferences { gap: 7px; }
+  html[lang="en"] .hero-actions { flex-direction: column; gap: 16px; }
+}
+
+@media (prefers-contrast: more) {
+  html[data-theme="dark"] { --muted: #c2d1c8; --line: #647d6e; }
+  html[data-theme="dark"] .hero-meta,
+  html[data-theme="dark"] .screenshot-caption,
+  html[data-theme="dark"] .footer,
+  html[data-theme="dark"] .download-footnote { color: #c6d7c6; }
+}

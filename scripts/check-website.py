@@ -19,7 +19,7 @@ class Page(HTMLParser):
         attrs = dict(attrs)
         if 'id' in attrs:
             self.ids.append(attrs['id'])
-        for field in ('data-i18n', 'data-i18n-aria'):
+        for field in ('data-i18n', 'data-i18n-aria', 'data-i18n-title'):
             if field in attrs:
                 self.keys.add(attrs[field])
         for field in ('href', 'src'):
@@ -50,8 +50,12 @@ def check():
     script = (ROOT / 'app.js').read_text(encoding='utf-8')
     for name in page.screenshots:
         for language in ('zh', 'en'):
-            if not (ROOT / 'assets' / f'{name}-{language}.jpg').is_file():
-                errors.append(f'Missing screenshot: {name}-{language}.jpg')
+            for theme in ('light', 'dark'):
+                image = ROOT / 'assets' / f'{name}-{language}-{theme}.jpg'
+                if not image.is_file():
+                    errors.append(f'Missing screenshot: {image.name}')
+                elif image.read_bytes()[:2] != b'\xff\xd8':
+                    errors.append(f'Expected JPEG screenshot: {image.name}')
     for key in sorted(page.keys):
         if len(re.findall(r'\b' + re.escape(key) + r':\s*"', script)) != 2:
             errors.append(f'Expected a Chinese and English translation for: {key}')

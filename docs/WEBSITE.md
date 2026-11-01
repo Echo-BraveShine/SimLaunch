@@ -12,6 +12,10 @@ python3 -m http.server 4173 --bind 127.0.0.1 --directory website
 
 访问 `http://127.0.0.1:4173/`。中文和英文链接分别为 `?lang=zh` 和 `?lang=en`。语言选择按 URL 参数、本机已保存偏好、浏览器语言的顺序决定；切换后保存在本机。页面不依赖 JavaScript 即可阅读默认中文内容。
 
+导航栏提供跟随系统、浅色、深色三种外观。默认跟随系统，并实时响应系统深浅色变化；手动选择保存在浏览器本地。可以使用 `?lang=zh&theme=dark` 分享指定语言和主题的页面，`theme` 支持 `system`、`light`、`dark`，URL 参数优先于已保存偏好。页面加载时在样式绘制前解析外观，避免深色模式先闪出浅色背景。禁用 JavaScript 时提供默认中文浅色页面。
+
+设备列表和通用设置各有中英文、深浅色四个真实截图，共八张，存放在 `website/assets/{devices|settings}-{zh|en}-{light|dark}.jpg`。页面主题和语言改变时，同步切换截图、替代文本及查看原图的链接。截图来自应用实际切换后的界面，更新应用 UI 后应同步重新拍摄。
+
 ## 部署到 GitHub
 
 1. 提交并推送官网源码和 `.github/workflows/pages.yml`。
@@ -23,10 +27,20 @@ python3 -m http.server 4173 --bind 127.0.0.1 --directory website
 
 应用 Release 工作流和网站部署独立运行。官网只上传 `website/`，安装包仍由 GitHub Releases 提供；源码、构建产物和密钥不随网站上传。
 
+### configure-pages 报 Not Found
+
+如果 `actions/configure-pages@v5` 报 `Get Pages site failed` / `Not Found`，先打开 [仓库 Pages 设置](https://github.com/Echo-BraveShine/SimLaunch/settings/pages)，将 **Build and deployment → Source** 设置为 **GitHub Actions**，然后重跑失败的 Website 工作流。已有发布工作流，无需再添加 GitHub 推荐的模板。
+
+当前工作流已经配置 `contents: read`、`pages: write` 和 `id-token: write`。这些权限用于部署，不表示仓库已启用 Pages。不要只添加 `enablement: true`：根据 [configure-pages v5 的参数说明](https://github.com/actions/configure-pages/blob/v5/action.yml)，自动启用 Pages 需要额外提供非 `GITHUB_TOKEN` 的合适令牌；当前方案在仓库设置中手动启用一次即可，无需新增 Secret。
+
+如果 Pages 设置不可见或无法修改，检查当前账号的仓库管理权限、组织策略，以及私有仓库所用套餐是否支持 Pages。启用后仍报错时，检查是否禁用了 Pages，或发布来源是否仍为分支部署。
+
 ## 内容与维护
 
 - `index.html`：页面内容、无脚本时的中文内容和初始元信息。
 - `styles.css`：桌面和手机布局、视觉效果及减少动态效果支持。
+- `themes.css`：外观切换按钮与深色配色，包含卡片、下载区、安全提示和手机导航适配。
+- `appearance.js`：页面绘制前的主题初始化、外观选择记忆与系统主题监听。
 - `app.js`：完整中英文文案、语言选择与安装命令复制。
 - `assets/`：沿用项目 Logo，以及运行真实应用截取的设备列表、设置界面。
 - `scripts/check-website.py`：检查本地资源、锚点和双语文案覆盖。
@@ -38,6 +52,12 @@ python3 -m http.server 4173 --bind 127.0.0.1 --directory website
 ```sh
 python3 scripts/check-website.py
 node --check website/app.js
+node --check website/appearance.js
+node --test scripts/tests/test_website_theme.js
 ```
 
 网站路径均使用相对地址，可以部署在 `/SimLaunch/` 子路径下，也支持以后绑定自定义域名。
+
+## 赞助入口
+
+赞助地址为 `https://buymeacoffee.com/1239383708p`，已加入官网页脚和 README。GitHub 仓库的 Sponsor 按钮由 `.github/FUNDING.yml` 配置，其中 `buy_me_a_coffee` 只填写账号标识 `1239383708p`，不要填写完整 URL。将该文件推送到默认分支后生效，无需添加 API Key 或 Secret。若仓库未显示按钮，可在仓库 Settings → General → Features 中检查 Sponsorships 是否启用。

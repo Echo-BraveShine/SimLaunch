@@ -31,7 +31,7 @@ brew install --cask echo-braveshine/simlaunch/simlaunch
 
 这会安装 Release 应用包，SDK 仍需单独准备。升级、卸载及自动维护说明见 [Homebrew 说明](docs/HOMEBREW.md)。
 
-中英文官网源码位于 `website/`，包含 GitHub Pages 自动部署配置。本地预览、启用 Pages 和维护方式见 [官网说明](docs/WEBSITE.md)。
+中英文官网源码位于 `website/`，支持跟随系统、浅色、深色外观，应用截图随语言和外观同步切换，包含 GitHub Pages 自动部署配置。本地预览、启用 Pages 和维护方式见 [官网说明](docs/WEBSITE.md)。
 
 ### 首次打开：允许 macOS 安全提示
 
@@ -77,10 +77,10 @@ open dist/SimLaunch.app
 
 ## 设备列表与操作
 
-- 按 iOS、Android、HarmonyOS 分组；不可用设备放入单独的可折叠“不可用”分类。
+- 按 iOS、Android、HarmonyOS 分组；没有可显示设备的平台不展示分类，不可用设备放入单独的可折叠“不可用”分类。所有平台均无设备且查询成功时，统一显示一条空列表提示；查询失败时保留错误提示。
 - “常用”位于列表顶部，记录通过 SimLaunch 成功启动到目标状态或成功执行 iOS“显示”的设备，最近一次排在最前。记录保存在本机；没有可显示记录时隐藏，已删除或当前不可用的设备不显示。它不追踪其他开发工具中的使用行为，平台分组仍保留完整列表。
 - 启动、停止和删除前重新查询设备状态；同一设备操作期间禁用重复操作。不同工具同时修改设备状态时仍可能出现竞争，错误会提示重试。
-- 完成一轮查询后等待约 5 秒再自动刷新，也可手动刷新。三个平台依次查询，因此实际刷新间隔包含查询耗时；某平台失败会保留它原有条目并标记状态未知，随后继续查询其他平台。
+- 完成一轮查询后等待约 5 秒再自动刷新，也可手动刷新。自动查询不显示加载动画；用户点击刷新后，刷新按钮原位显示加载动画，完成后恢复图标。若自动查询正在进行，手动刷新会复用该轮查询并显示其进度。三个平台依次查询，因此实际刷新间隔包含查询耗时；某平台失败会保留它原有条目并标记状态未知，随后继续查询其他平台。
 - 查询错误显示在列表中，操作错误使用弹窗。Android / HarmonyOS 启动器输出写入 `~/Library/Logs/SimLaunch/`；该目录不是所有操作的统一日志。
 
 ### 右键菜单
@@ -103,8 +103,11 @@ open dist/SimLaunch.app
 
 ### 通用
 
+- **外观**：跟随系统、浅色、深色，默认跟随系统。切换后立即应用到设备窗口、菜单栏面板和设置页，并保存供下次启动使用；不修改 macOS 的全局外观设置。
 - **语言**：简体中文、English、跟随系统，立即生效并保存。界面、设备状态及应用定义的错误提示提供中英文；设备原名、外部 CLI 输出和系统生成的诊断保留原文。系统原生界面可能遵循系统语言。
 - **登录时启动**：使用 `SMAppService.mainApp` 注册或取消登录项，立即生效，不依赖路径保存按钮。开关读取系统状态；需要批准时显示提示和系统设置入口。建议先将应用放在固定位置（如 `/Applications`）再启用。该功能已接入系统接口，但尚未通过注销或重启完成自动启动验证。
+
+- **官方网站**：点击官网卡片，在默认浏览器中打开 [SimLaunch 官网](https://echo-braveshine.github.io/SimLaunch/)。
 
 ### 平台路径
 
@@ -202,6 +205,12 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 | `Sources/SimLaunchCore/ProcessRunner.swift` | 短命令执行和启动器生命周期管理 |
 | `Sources/SimLaunchCore/Localization.swift`、`Resources/` | 本地化字符串及语言选择 |
 | `Tests/SimLaunchCoreTests/CoreTests.swift` | 基础测试与可选本机集成测试 |
+
+## 支持开发
+
+本项目采用 [MIT License](LICENSE)，支持自愿赞助，无需付款即可使用。应用设置 → 通用中也提供“请我喝杯咖啡”入口。许可证核查与分发声明见 [许可证说明](docs/LICENSING.md)。
+
+如果 SimLaunch 对你有帮助，欢迎通过 [Buy Me a Coffee ☕](https://buymeacoffee.com/1239383708p) 支持后续开发与维护。
 
 ## 参考
 

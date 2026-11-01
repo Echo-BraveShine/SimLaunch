@@ -6,20 +6,23 @@
       pageTitle: "SimLaunch — 三个平台，一个启动入口",
       pageDescription: "SimLaunch 是 macOS 上的模拟器管理工具。在一个入口中查看、启动和停止 iOS、Android 与 HarmonyOS 模拟器。",
       skip: "跳到内容", navigation: "主导航", language: "语言", platforms: "支持的平台",
+      appearance: "网页外观", themeSystem: "跟随系统外观", themeLight: "浅色外观", themeDark: "深色外观",
+      lightScreenshot: "浅色界面", darkScreenshot: "深色界面",
+      support: "支持作者 ☕",
       navFeatures: "功能", navInstall: "安装", heroEyebrow: "为 macOS 开发者而作",
       heroLineOne: "三个平台。", heroLineTwo: "一个启动入口。",
       heroDescription: "iOS、Android、HarmonyOS。把分散的模拟器收进菜单栏，让启动、切换与日常管理都顺手一点。",
       download: "下载 macOS 版", installGuide: "安装指南", macos: "macOS 13+", swiftui: "原生 SwiftUI",
       screenshotCaption: "真实应用截图 · 设备与状态取决于本机环境",
       screenshotsEyebrow: "直接看看，真实界面", screenshotsTitle: "你的工具，你的设置。",
-      screenshotsDescription: "截图来自实际运行的 SimLaunch。\n切换语言，也能看到对应的应用界面。",
-      settingsScreenshotCaption: "iOS 平台设置 · 自动发现与手动路径配置",
-      devicesAlt: "SimLaunch 中文设备列表，展示常用设备和 iOS 设备", settingsAlt: "SimLaunch 中文 iOS 设置窗口，包含平台导航和自动路径查找",
+      screenshotsDescription: "截图来自实际运行的 SimLaunch。\n切换语言与外观，可查看对应的真实应用界面。",
+      settingsScreenshotCaption: "通用设置 · 外观、语言与应用偏好",
+      devicesAlt: "SimLaunch 中文设备列表，展示常用设备和 iOS 设备", settingsAlt: "SimLaunch 中文通用设置，包含外观、语言与应用偏好",
       platformIntro: "你的设备，不必分散管理。", featuresEyebrow: "少一点切换，多一点专注",
       featuresTitle: "日常要用的，刚刚好。", featuresDescription: "不必为每一次启动打开一整套开发工具。\n从设备列表开始，专注眼前的开发。",
       featureOneTitle: "从菜单栏，直达设备。", featureOneDescription: "查看三平台设备，启动或停止模拟器。常用设备显示在最上方，不可用设备独立归类。",
       featureTwoTitle: "顺手的事，一次右键。", featureTwoDescription: "复制设备名称、定位设备目录，或冷启动 Android 与 HarmonyOS 设备。删除操作需再次确认。",
-      featureThreeTitle: "跟随你的开发环境。", featureThreeDescription: "自动查找开发工具，也支持手动指定路径。中英文切换、登录时启动，在同一个设置窗口完成。",
+      featureThreeTitle: "跟随你的开发环境。", featureThreeDescription: "自动发现或手动配置工具路径。中英文、深浅色外观与登录时启动，在同一个设置窗口完成。",
       nativeEyebrow: "像 macOS 本来就有的一样", nativeTitle: "原生体验，安静陪伴。",
       nativeDescription: "使用 SwiftUI 构建，常驻菜单栏。在 macOS 26 及更新系统上，部分界面采用 Liquid Glass；较旧系统使用原生材质。",
       installEyebrow: "下一次开发，从这里开始", installTitle: "准备好，启动。", installDescription: "选择适合你的安装方式。\n开发工具与系统镜像需自行准备。",
@@ -39,20 +42,23 @@
       pageTitle: "SimLaunch — Three platforms. One place to launch.",
       pageDescription: "Manage iOS, Android, and HarmonyOS simulators on macOS. Browse your devices, start and stop simulators, and keep recent devices close at hand.",
       skip: "Skip to content", navigation: "Main navigation", language: "Language", platforms: "Supported platforms",
+      appearance: "Website appearance", themeSystem: "Follow system appearance", themeLight: "Light appearance", themeDark: "Dark appearance",
+      lightScreenshot: "Light appearance", darkScreenshot: "Dark appearance",
+      support: "Buy me a coffee ☕",
       navFeatures: "Features", navInstall: "Install", heroEyebrow: "Made for developers on macOS",
       heroLineOne: "Three platforms.", heroLineTwo: "One place to launch.",
       heroDescription: "iOS, Android, HarmonyOS. Bring your simulators to the menu bar, with a convenient place to launch, switch, and manage your devices.",
       download: "Download for macOS", installGuide: "Installation guide", macos: "macOS 13+", swiftui: "Native SwiftUI",
       screenshotCaption: "Actual app screenshot · Devices and states depend on your setup",
       screenshotsEyebrow: "A closer look at the real app", screenshotsTitle: "Your tools. Your settings.",
-      screenshotsDescription: "Captured from a running copy of SimLaunch.\nSwitch languages to see the matching app interface.",
-      settingsScreenshotCaption: "iOS settings · Automatic discovery and custom tool paths",
-      devicesAlt: "SimLaunch device list in English, showing recent and iOS devices", settingsAlt: "SimLaunch iOS settings in English, with platform navigation and automatic path discovery",
+      screenshotsDescription: "Captured from a running copy of SimLaunch.\nSwitch language and appearance to see the matching interface.",
+      settingsScreenshotCaption: "General settings · Appearance, language, and app preferences",
+      devicesAlt: "SimLaunch device list in English, showing recent and iOS devices", settingsAlt: "SimLaunch general settings in English, with appearance, language, and app preferences",
       platformIntro: "Your devices. All in one place.", featuresEyebrow: "Less switching. More focus.",
       featuresTitle: "Everyday essentials, within reach.", featuresDescription: "Skip opening a full IDE just to launch a device.\nStart with your device list. Get back to building.",
       featureOneTitle: "Your menu bar. Your devices.", featureOneDescription: "Browse, start, and stop simulators across three platforms. Recent devices stay at the top; unavailable devices get their own group.",
       featureTwoTitle: "A right click goes a long way.", featureTwoDescription: "Copy device names, reveal device folders, or cold boot Android and HarmonyOS devices. Device deletion requires confirmation.",
-      featureThreeTitle: "At home in your setup.", featureThreeDescription: "Discover tools automatically or set custom paths. Choose English or Chinese and manage launch at login in one settings window.",
+      featureThreeTitle: "At home in your setup.", featureThreeDescription: "Discover tools or set custom paths. Choose English or Chinese, light or dark appearance, and launch at login in one settings window.",
       nativeEyebrow: "Feels right at home on your Mac", nativeTitle: "Native by design. Quiet by nature.",
       nativeDescription: "Built with SwiftUI, right in your menu bar. Selected surfaces use Liquid Glass on macOS 26 and later, with native materials on older systems.",
       installEyebrow: "Your next session starts here", installTitle: "Ready. Set. Launch.", installDescription: "Choose how you want to install.\nDeveloper tools and system images are installed separately.",
@@ -75,6 +81,20 @@
   let toastTimeout;
   let copyTimeout;
 
+  function updateScreenshots() {
+    const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    const strings = translations[language];
+    document.querySelectorAll("[data-screenshot]").forEach(image => {
+      const name = image.dataset.screenshot;
+      const path = `./assets/${name}-${language}-${theme}.jpg`;
+      if (image.getAttribute("src") !== path) image.src = path;
+      image.alt = `${strings[`${name}Alt`]} · ${strings[`${theme}Screenshot`]}`;
+    });
+    document.querySelectorAll("[data-screenshot-link]").forEach(link => {
+      link.href = `./assets/${link.dataset.screenshotLink}-${language}-${theme}.jpg`;
+    });
+  }
+
   function setLanguage(next, persist = false) {
     language = next === "en" ? "en" : "zh";
     const strings = translations[language];
@@ -90,17 +110,13 @@
     document.querySelectorAll("[data-i18n-aria]").forEach(element => {
       element.setAttribute("aria-label", strings[element.dataset.i18nAria]);
     });
+    document.querySelectorAll("[data-i18n-title]").forEach(element => {
+      element.setAttribute("title", strings[element.dataset.i18nTitle]);
+    });
     document.querySelectorAll("[data-language]").forEach(button => {
       button.setAttribute("aria-pressed", String(button.dataset.language === language));
     });
-    document.querySelectorAll("[data-screenshot]").forEach(image => {
-      const name = image.dataset.screenshot;
-      image.src = `./assets/${name}-${language}.jpg`;
-      image.alt = strings[`${name}Alt`];
-    });
-    document.querySelectorAll("[data-screenshot-link]").forEach(link => {
-      link.href = `./assets/${link.dataset.screenshotLink}-${language}.jpg`;
-    });
+    updateScreenshots();
     document.getElementById("apple-help").href = language === "en"
       ? "https://support.apple.com/en-us/102445" : "https://support.apple.com/zh-cn/102445";
     clearTimeout(copyTimeout);
@@ -125,6 +141,7 @@
   document.querySelectorAll("[data-language]").forEach(button => {
     button.addEventListener("click", () => setLanguage(button.dataset.language, true));
   });
+  document.addEventListener("simlaunch:appearancechange", updateScreenshots);
 
   document.getElementById("copy-command").addEventListener("click", async () => {
     const button = document.getElementById("copy-command");

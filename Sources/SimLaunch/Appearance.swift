@@ -1,9 +1,51 @@
 import SwiftUI
+import AppKit
 import SimLaunchCore
+
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+    static let storageKey = "appAppearance"
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .system: return L10n.text("System")
+        case .light: return L10n.text("Light")
+        case .dark: return L10n.text("Dark")
+        }
+    }
+    @MainActor func apply() {
+        // A nil override restores live system appearance for every window and popover.
+        switch self {
+        case .system: NSApplication.shared.appearance = nil
+        case .light: NSApplication.shared.appearance = NSAppearance(named: .aqua)
+        case .dark: NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
+struct AppAppearanceModifier: ViewModifier {
+    @AppStorage(AppAppearance.storageKey) private var appearance = AppAppearance.system
+    func body(content: Content) -> some View {
+        content.onAppear { appearance.apply() }
+            .onChange(of: appearance) { value in value.apply() }
+    }
+}
+
+struct AdaptiveCard: ViewModifier {
+    var radius: CGFloat = 12
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    func body(content: Content) -> some View {
+        content.background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: radius))
+            .overlay(RoundedRectangle(cornerRadius: radius).strokeBorder(
+                Color.primary.opacity(contrast == .increased ? 0.3 : colorScheme == .dark ? 0.14 : 0.07)))
+    }
+}
 
 struct PlatformIcon: View {
     let platform: Platform
     var size: CGFloat = 28
+    @Environment(\.colorScheme) private var colorScheme
     private var tint: Color {
         switch platform { case .iOS: return Color(red: 0.16, green: 0.17, blue: 0.19); case .Android: return Color(red: 0.16, green: 0.62, blue: 0.36); case .HarmonyOS: return .blue }
     }
@@ -33,7 +75,9 @@ struct PlatformIcon: View {
                     Capsule().frame(width: size * 0.34, height: size * 0.035)
                 }.foregroundStyle(.white)
             }
-        }.frame(width: size, height: size).accessibilityLabel(platform.rawValue)
+        }.frame(width: size, height: size)
+            .overlay(RoundedRectangle(cornerRadius: size * 0.25).strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.15 : 0)))
+            .accessibilityLabel(platform.rawValue)
     }
 }
 

@@ -5,11 +5,13 @@ on:
     paths:
       - 'website/**'
       - 'scripts/check-website.py'
+      - 'scripts/tests/test_website_theme.js'
       - '.github/workflows/pages.yml'
   pull_request:
     paths:
       - 'website/**'
       - 'scripts/check-website.py'
+      - 'scripts/tests/test_website_theme.js'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 permissions:
@@ -24,6 +26,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 scripts/check-website.py
       - run: node --check website/app.js
+      - run: node --check website/appearance.js
+      - run: node --test scripts/tests/test_website_theme.js
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate

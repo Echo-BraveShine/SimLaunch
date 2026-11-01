@@ -2,6 +2,8 @@ import AppKit
 import Foundation
 
 @MainActor enum AppBrand {
+    static let websiteURL = URL(string: "https://echo-braveshine.github.io/SimLaunch/")!
+    static let supportURL = URL(string: "https://buymeacoffee.com/1239383708p")!
     static let icon: NSImage = {
         guard let url = Bundle.module.url(forResource: "SimLaunchIcon", withExtension: "png"), let image = NSImage(contentsOf: url) else {
             preconditionFailure("Missing approved SimLaunch app icon")

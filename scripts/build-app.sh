@@ -15,6 +15,7 @@ mkdir -p "$APP/Contents/Resources"
 ditto "$BIN_DIR/SimLaunch_SimLaunchCore.bundle" "$APP/Contents/Resources/SimLaunch_SimLaunchCore.bundle"
 ditto "$BIN_DIR/SimLaunch_SimLaunch.bundle" "$APP/Contents/Resources/SimLaunch_SimLaunch.bundle"
 cp .build/Branding/SimLaunch.icns "$APP/Contents/Resources/SimLaunch.icns"
+cp LICENSE "$APP/Contents/Resources/LICENSE.txt"
 cp Info.plist "$APP/Contents/Info.plist"
 python3 scripts/configure-bundle.py
 if [[ "${SIMLAUNCH_ENABLE_SPARKLE:-0}" == "1" ]]; then

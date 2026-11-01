@@ -79,3 +79,13 @@
 "Check for updates…" = "检查更新…";
 "In-app updates are available in configured release builds." = "已配置更新源的发布版支持应用内更新。";
 "View releases" = "查看发布版本";
+"Official website" = "官方网站";
+"Open the SimLaunch website in your default browser." = "在默认浏览器中打开 SimLaunch 官网。";
+"Refreshing…" = "正在刷新…";
+"System" = "跟随系统";
+"Light" = "浅色";
+"Dark" = "深色";
+"Choose light, dark, or follow your Mac." = "选择浅色、深色或跟随系统外观。";
+"Buy me a coffee" = "请我喝杯咖啡";
+"Optional support for ongoing development." = "自愿支持后续开发与维护。";
+"Open Buy Me a Coffee in your default browser." = "在默认浏览器中打开 Buy Me a Coffee 支持页面。";

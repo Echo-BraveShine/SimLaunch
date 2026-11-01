@@ -8,6 +8,8 @@ import SimLaunchCore
     @Published var errors: [String] = []
     @Published var operationError: String?
     @Published var refreshing = false
+    @Published private(set) var manuallyRefreshing = false
+    @Published private(set) var hasRefreshed = false
     @Published var busy: Set<String> = []
     @Published private(set) var recentDeviceIDs: [String] = UserDefaults.standard.stringArray(forKey: "recentDeviceIDs") ?? []
     var recentDevices: [Device] {
@@ -37,9 +39,15 @@ import SimLaunchCore
         UserDefaults.standard.set(try? JSONEncoder().encode(config), forKey: "configuration")
         Task { await refresh() }
     }
-    func refresh() async {
-        guard !refreshing else { return }; refreshing = true
-        defer { refreshing = false }
+    func refresh(manual: Bool = false) async {
+        guard !refreshing else {
+            // A manual click joins an active background query instead of starting another.
+            if manual { manuallyRefreshing = true }
+            return
+        }
+        refreshing = true
+        manuallyRefreshing = manual
+        defer { refreshing = false; manuallyRefreshing = false; hasRefreshed = true }
         var next: [Device] = []; var failures: [String] = []
         for platform in Platform.allCases {
             do { next += try await provider(platform).list() }
@@ -115,6 +123,7 @@ import SimLaunchCore
     private let updates = UpdateController.shared
     init() {
         AppPreferences.migrateIfNeeded()
+        (AppAppearance(rawValue: UserDefaults.standard.string(forKey: AppAppearance.storageKey) ?? "") ?? .system).apply()
         _store = StateObject(wrappedValue: Store())
     }
     @AppStorage("appLanguage") private var language = "system"
@@ -142,8 +151,16 @@ struct Panel: View {
             HStack {
                 Image(nsImage: AppBrand.icon).resizable().frame(width: 30, height: 30)
                 Text("SimLaunch").font(.title2.bold()); Spacer()
-                if store.refreshing { ProgressView().controlSize(.small) }
-                Button { Task { await store.refresh() } } label: { Image(systemName: "arrow.clockwise") }.disabled(store.refreshing)
+                Button { Task { await store.refresh(manual: true) } } label: {
+                    ZStack {
+                        Image(systemName: "arrow.clockwise").opacity(store.manuallyRefreshing ? 0 : 1)
+                        if store.manuallyRefreshing {
+                            ProgressView().controlSize(.mini).accessibilityHidden(true)
+                        }
+                    }.frame(width: 16, height: 16)
+                }.disabled(store.manuallyRefreshing)
+                    .help(L10n.text("刷新"))
+                    .accessibilityLabel(L10n.text(store.manuallyRefreshing ? "Refreshing…" : "刷新"))
                 Button {
                     if isMenuBar { hostWindow.window?.close() }
                     // Let the status panel finish closing before requesting application focus.
@@ -162,11 +179,12 @@ struct Panel: View {
                         }
                     }
                     ForEach(Platform.allCases) { platform in
-                        Text(platform.rawValue).font(.headline)
                         let devices = store.devices.filter { $0.platform == platform && $0.state != .unavailable }
-                        if devices.isEmpty { Text(L10n.text("未发现设备，请在开发工具中创建，或检查路径设置。")).font(.caption).foregroundStyle(.secondary) }
-                        ForEach(devices) { device in
-                            deviceRow(device)
+                        if !devices.isEmpty {
+                            Text(platform.rawValue).font(.headline)
+                            ForEach(devices) { device in
+                                deviceRow(device)
+                            }
                         }
                     }
                     let unavailable = store.devices.filter { $0.state == .unavailable }
@@ -179,12 +197,17 @@ struct Panel: View {
                             Text(L10n.format("Unavailable (%d)", unavailable.count)).font(.headline)
                         }
                     }
+                    if store.devices.isEmpty && store.hasRefreshed && store.errors.isEmpty {
+                        Text(L10n.text("未发现设备，请在开发工具中创建，或检查路径设置。")).font(.caption).foregroundStyle(.secondary)
+                    }
                     ForEach(store.errors, id: \.self) { Text($0).font(.caption).foregroundStyle(.red).textSelection(.enabled) }
                 }
             }.frame(height: 480)
             Divider()
             HStack { Text(L10n.text("仅管理模拟器")).font(.caption).foregroundStyle(.secondary); Spacer(); Button(L10n.text("退出")) { NSApp.terminate(nil) } }
         }.padding().frame(width: 400)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .modifier(AppAppearanceModifier())
         .environment(\.locale, Locale(identifier: language == "system" ? L10n.language : language))
         .background(PanelWindowAttachment(reference: hostWindow).frame(width: 0, height: 0))
         .navigationTitle(L10n.text("SimLaunch 设备"))
@@ -220,7 +243,7 @@ struct Panel: View {
             }
             Button(device.state == .running ? L10n.text("停止") : L10n.text("启动")) { store.toggle(device) }
                 .disabled(store.busy.contains(device.id) || ![DeviceState.running, .stopped].contains(device.state))
-        }.padding(8).background(.quaternary.opacity(0.4)).clipShape(RoundedRectangle(cornerRadius: 8))
+        }.padding(8).modifier(AdaptiveCard(radius: 8))
         .contentShape(Rectangle())
         .contextMenu {
             Button(L10n.text("在访达中显示")) { store.showInFinder(device) }
@@ -251,6 +274,7 @@ struct SettingsView: View {
     @StateObject private var loginItem = LoginItemController()
     @EnvironmentObject var store: Store
     @AppStorage("appLanguage") private var language = "system"
+    @AppStorage(AppAppearance.storageKey) private var appearance = AppAppearance.system
     @State private var selected: Platform? = .iOS
     @State private var draft = Configuration()
     @State private var saved = false
@@ -337,8 +361,7 @@ struct SettingsView: View {
                             case .HarmonyOS:
                                 pathField("Emulator", text: $draft.harmony, placeholder: "…/DevEco-Studio.app/Contents/tools/emulator/Emulator", hint: L10n.text("选择 DevEco Studio 内的 Emulator 可执行文件。"))
                             }
-                        }.background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
-                            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.07)))
+                        }.modifier(AdaptiveCard())
                         Label {
                             Text(L10n.text("路径留空即可自动查找，也可以手动指定。支持 ~ 和包含空格的路径。"))
                                 .fixedSize(horizontal: false, vertical: true)
@@ -363,6 +386,7 @@ struct SettingsView: View {
             }.padding(24).frame(maxWidth: .infinity)
         }.frame(width: 880, height: 620)
             .background(Color(nsColor: .windowBackgroundColor))
+            .modifier(AppAppearanceModifier())
             .environment(\.locale, Locale(identifier: language == "system" ? L10n.language : language))
             .background(SettingsWindowAttachment().frame(width: 0, height: 0))
             .navigationTitle(L10n.text("SimLaunch 设置"))
@@ -374,67 +398,111 @@ struct SettingsView: View {
     }
 
     private var generalSettings: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 14) {
-                    Image(systemName: "power").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(L10n.text("Launch at login")).font(.system(size: 13, weight: .semibold))
-                        Text(L10n.text("Open SimLaunch when you sign in to your Mac."))
-                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "power").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(L10n.text("Launch at login")).font(.system(size: 13, weight: .semibold))
+                            Text(L10n.text("Open SimLaunch when you sign in to your Mac."))
+                                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 16)
+                        Toggle(L10n.text("Launch at login"), isOn: Binding(get: { loginItem.requested }, set: { loginItem.setEnabled($0) }))
+                            .labelsHidden().toggleStyle(.switch).controlSize(.small)
+                            .disabled(!loginItem.available || loginItem.updating)
+                    }.padding(20)
+                    if !loginItem.available {
+                        Text(L10n.text("Configure this in the packaged SimLaunch.app."))
+                            .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 20).padding(.bottom, 16)
+                    } else if loginItem.status == .requiresApproval {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(L10n.text("Approval required in System Settings.")).font(.caption).foregroundStyle(.secondary)
+                            Button(L10n.text("Open Login Items Settings")) { loginItem.openSystemSettings() }.buttonStyle(.link)
+                        }.padding(.horizontal, 20).padding(.bottom, 16)
                     }
-                    Spacer(minLength: 16)
-                    Toggle(L10n.text("Launch at login"), isOn: Binding(get: { loginItem.requested }, set: { loginItem.setEnabled($0) }))
-                        .labelsHidden().toggleStyle(.switch).controlSize(.small)
-                        .disabled(!loginItem.available || loginItem.updating)
-                }.padding(20)
-                if !loginItem.available {
-                    Text(L10n.text("Configure this in the packaged SimLaunch.app."))
-                        .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 20).padding(.bottom, 16)
-                } else if loginItem.status == .requiresApproval {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(L10n.text("Approval required in System Settings.")).font(.caption).foregroundStyle(.secondary)
-                        Button(L10n.text("Open Login Items Settings")) { loginItem.openSystemSettings() }.buttonStyle(.link)
-                    }.padding(.horizontal, 20).padding(.bottom, 16)
-                }
-                Divider().padding(.horizontal, 20)
-                HStack(spacing: 14) {
-                    Image(systemName: "globe").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(L10n.text("语言")).font(.system(size: 13, weight: .semibold))
-                        Text(L10n.text("Choose the display language for SimLaunch."))
+                    Divider().padding(.horizontal, 20)
+                    HStack(spacing: 14) {
+                        Image(systemName: "globe").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(L10n.text("语言")).font(.system(size: 13, weight: .semibold))
+                            Text(L10n.text("Choose the display language for SimLaunch."))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 16)
+                        Picker(L10n.text("语言"), selection: $language) {
+                            Text(L10n.text("跟随系统")).tag("system")
+                            Text("简体中文").tag("zh-Hans")
+                            Text("English").tag("en")
+                        }.labelsHidden().pickerStyle(.menu).frame(width: 140)
+                    }.padding(20)
+                    Divider().padding(.horizontal, 20)
+                    HStack(spacing: 14) {
+                        Image(systemName: "circle.lefthalf.filled").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(L10n.text("外观")).font(.system(size: 13, weight: .semibold))
+                            Text(L10n.text("Choose light, dark, or follow your Mac."))
+                                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 16)
+                        Picker(L10n.text("外观"), selection: $appearance) {
+                            ForEach(AppAppearance.allCases) { mode in
+                                Text(mode.title).tag(mode)
+                            }
+                        }.labelsHidden().pickerStyle(.segmented).frame(width: 250)
+                    }.padding(20)
+                }.modifier(AdaptiveCard())
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "arrow.triangle.2.circlepath").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(L10n.text("Software updates")).font(.system(size: 13, weight: .semibold))
+                            Text("SimLaunch \(updates.version) (\(updates.build))").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button(L10n.text("Check for updates…")) { updates.checkForUpdates() }.disabled(!updates.canCheck)
+                    }
+                    if !updates.configured {
+                        Text(L10n.text("In-app updates are available in configured release builds."))
                             .font(.caption).foregroundStyle(.secondary)
                     }
-                    Spacer(minLength: 16)
-                    Picker(L10n.text("语言"), selection: $language) {
-                        Text(L10n.text("跟随系统")).tag("system")
-                        Text("简体中文").tag("zh-Hans")
-                        Text("English").tag("en")
-                    }.labelsHidden().pickerStyle(.menu).frame(width: 140)
+                    Button(L10n.text("View releases")) { updates.openReleases() }.buttonStyle(.link).font(.caption)
                 }.padding(20)
-            }.background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.07)))
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 14) {
-                    Image(systemName: "arrow.triangle.2.circlepath").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(L10n.text("Software updates")).font(.system(size: 13, weight: .semibold))
-                        Text("SimLaunch \(updates.version) (\(updates.build))").font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Button(L10n.text("Check for updates…")) { updates.checkForUpdates() }.disabled(!updates.canCheck)
-                }
-                if !updates.configured {
-                    Text(L10n.text("In-app updates are available in configured release builds."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Button(L10n.text("View releases")) { updates.openReleases() }.buttonStyle(.link).font(.caption)
-            }.padding(20)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.07)))
-            Label(L10n.text("Changes apply immediately."), systemImage: "info.circle")
-                .font(.caption).foregroundStyle(.secondary)
-            Spacer()
+                    .modifier(AdaptiveCard())
+                Link(destination: AppBrand.websiteURL) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "safari").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(L10n.text("Official website")).font(.system(size: 13, weight: .semibold))
+                            Text("echo-braveshine.github.io/SimLaunch")
+                                .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                        }
+                        Spacer(minLength: 16)
+                        Image(systemName: "arrow.up.right").font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+                    }.padding(20).contentShape(Rectangle())
+                }.buttonStyle(.plain).foregroundStyle(.primary)
+                    .modifier(AdaptiveCard())
+                    .help(AppBrand.websiteURL.absoluteString)
+                    .accessibilityHint(L10n.text("Open the SimLaunch website in your default browser."))
+                Link(destination: AppBrand.supportURL) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "cup.and.saucer").font(.title3).foregroundStyle(Color.accentColor).frame(width: 24)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(L10n.text("Buy me a coffee")).font(.system(size: 13, weight: .semibold))
+                            Text(L10n.text("Optional support for ongoing development."))
+                                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 16)
+                        Image(systemName: "arrow.up.right").font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+                    }.padding(20).contentShape(Rectangle())
+                }.buttonStyle(.plain).foregroundStyle(.primary)
+                    .modifier(AdaptiveCard())
+                    .help(AppBrand.supportURL.absoluteString)
+                    .accessibilityHint(L10n.text("Open Buy Me a Coffee in your default browser."))
+                Label(L10n.text("Changes apply immediately."), systemImage: "info.circle")
+                    .font(.caption).foregroundStyle(.secondary)
+            }.padding(.bottom, 4)
         }
     }
 
