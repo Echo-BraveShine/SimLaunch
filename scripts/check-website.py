@@ -2,6 +2,7 @@
 from html.parser import HTMLParser
 from pathlib import Path
 import re
+import struct
 from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1] / 'website'
@@ -13,7 +14,7 @@ class Page(HTMLParser):
         self.ids = []
         self.keys = set()
         self.links = []
-        self.screenshots = set()
+        self.screenshots = {}
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
@@ -26,7 +27,7 @@ class Page(HTMLParser):
             if field in attrs:
                 self.links.append(attrs[field])
         if 'data-screenshot' in attrs:
-            self.screenshots.add(attrs['data-screenshot'])
+            self.screenshots[attrs['data-screenshot']] = (attrs.get('width'), attrs.get('height'))
 
 
 def check():
@@ -48,14 +49,22 @@ def check():
         elif url.fragment and url.fragment not in page.ids:
             errors.append(f'Missing anchor target: {link}')
     script = (ROOT / 'app.js').read_text(encoding='utf-8')
-    for name in page.screenshots:
+    for name, declared_size in page.screenshots.items():
         for language in ('zh', 'en'):
             for theme in ('light', 'dark'):
-                image = ROOT / 'assets' / f'{name}-{language}-{theme}.jpg'
+                image = ROOT / 'assets' / f'{name}-{language}-{theme}.png'
                 if not image.is_file():
                     errors.append(f'Missing screenshot: {image.name}')
-                elif image.read_bytes()[:2] != b'\xff\xd8':
-                    errors.append(f'Expected JPEG screenshot: {image.name}')
+                    continue
+                data = image.read_bytes()
+                if len(data) < 33 or data[:8] != b'\x89PNG\r\n\x1a\n' or data[12:16] != b'IHDR':
+                    errors.append(f'Expected PNG screenshot: {image.name}')
+                    continue
+                width, height, _, color_type = struct.unpack('>IIBB', data[16:26])
+                if color_type not in (4, 6):
+                    errors.append(f'Expected transparent screenshot with an alpha channel: {image.name}')
+                if (str(width), str(height)) != declared_size:
+                    errors.append(f'Screenshot size differs from HTML width/height: {image.name} ({width}x{height})')
     for key in sorted(page.keys):
         if len(re.findall(r'\b' + re.escape(key) + r':\s*"', script)) != 2:
             errors.append(f'Expected a Chinese and English translation for: {key}')

@@ -79,14 +79,14 @@ html[data-theme="dark"] summary::after { color: #adc4ad; }
 html[data-theme="dark"] .footer { color: #a6b7a2; }
 html[data-theme="dark"] .screenshot-caption,
 html[data-theme="dark"] .settings-screenshot figcaption { color: #9bad9f; }
-html[data-theme="dark"] .hero-screenshot img { border-color: #364c40; box-shadow: 0 24px 60px -20px #0008; }
+html[data-theme="dark"] .hero-screenshot img { filter: drop-shadow(0 18px 22px #0006); }
 html[data-theme="dark"] .settings-screenshot { background: #1d2a23; border-color: #344d3d; }
-html[data-theme="dark"] .settings-screenshot img { box-shadow: 0 14px 30px -15px #0008; }
+html[data-theme="dark"] .settings-screenshot img { filter: drop-shadow(0 10px 15px #0005); }
 html[data-theme="dark"] .toast { background: #d2eadd; color: #19352f; }
 html[data-theme="dark"] .skip-link { background: #d2eadd; color: #19352f; }
 
 /* Wait for the real dark capture rather than briefly showing the light one. */
-html[data-theme="dark"] img[data-screenshot]:not([src$="-dark.jpg"]) { visibility: hidden; }
+html[data-theme="dark"] img[data-screenshot]:not([src$="-dark.png"]) { visibility: hidden; }
 
 @media (max-width: 1000px) {
   .nav { gap: 22px; }

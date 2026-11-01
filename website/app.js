@@ -17,7 +17,7 @@
       screenshotsEyebrow: "直接看看，真实界面", screenshotsTitle: "你的工具，你的设置。",
       screenshotsDescription: "截图来自实际运行的 SimLaunch。\n切换语言与外观，可查看对应的真实应用界面。",
       settingsScreenshotCaption: "通用设置 · 外观、语言与应用偏好",
-      devicesAlt: "SimLaunch 中文设备列表，展示常用设备和 iOS 设备", settingsAlt: "SimLaunch 中文通用设置，包含外观、语言与应用偏好",
+      devicesAlt: "SimLaunch 中文设备面板，展示可折叠的平台分类和 Android 系统版本", settingsAlt: "SimLaunch 中文通用设置，包含外观、语言与应用偏好",
       platformIntro: "你的设备，不必分散管理。", featuresEyebrow: "少一点切换，多一点专注",
       featuresTitle: "日常要用的，刚刚好。", featuresDescription: "不必为每一次启动打开一整套开发工具。\n从设备列表开始，专注眼前的开发。",
       featureOneTitle: "从菜单栏，直达设备。", featureOneDescription: "查看三平台设备，启动或停止模拟器。常用设备显示在最上方，不可用设备独立归类。",
@@ -53,7 +53,7 @@
       screenshotsEyebrow: "A closer look at the real app", screenshotsTitle: "Your tools. Your settings.",
       screenshotsDescription: "Captured from a running copy of SimLaunch.\nSwitch language and appearance to see the matching interface.",
       settingsScreenshotCaption: "General settings · Appearance, language, and app preferences",
-      devicesAlt: "SimLaunch device list in English, showing recent and iOS devices", settingsAlt: "SimLaunch general settings in English, with appearance, language, and app preferences",
+      devicesAlt: "SimLaunch device panel in English, showing collapsible platform groups and Android versions", settingsAlt: "SimLaunch general settings in English, with appearance, language, and app preferences",
       platformIntro: "Your devices. All in one place.", featuresEyebrow: "Less switching. More focus.",
       featuresTitle: "Everyday essentials, within reach.", featuresDescription: "Skip opening a full IDE just to launch a device.\nStart with your device list. Get back to building.",
       featureOneTitle: "Your menu bar. Your devices.", featureOneDescription: "Browse, start, and stop simulators across three platforms. Recent devices stay at the top; unavailable devices get their own group.",
@@ -86,12 +86,12 @@
     const strings = translations[language];
     document.querySelectorAll("[data-screenshot]").forEach(image => {
       const name = image.dataset.screenshot;
-      const path = `./assets/${name}-${language}-${theme}.jpg`;
+      const path = `./assets/${name}-${language}-${theme}.png`;
       if (image.getAttribute("src") !== path) image.src = path;
       image.alt = `${strings[`${name}Alt`]} · ${strings[`${theme}Screenshot`]}`;
     });
     document.querySelectorAll("[data-screenshot-link]").forEach(link => {
-      link.href = `./assets/${link.dataset.screenshotLink}-${language}-${theme}.jpg`;
+      link.href = `./assets/${link.dataset.screenshotLink}-${language}-${theme}.png`;
     });
   }
 

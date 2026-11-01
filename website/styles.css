@@ -13,13 +13,13 @@ html[lang=en] .hero h1{font-size:clamp(42px,4.4vw,58px);line-height:1.17;letter-
 .section-heading>p{white-space:pre-line}
 .real-app-art{min-height:570px}
 .hero-screenshot{width:310px;margin:0;position:relative}
-.hero-screenshot img{width:100%;height:auto;border-radius:15px;box-shadow:0 24px 60px -20px #244f3c4d;border:1px solid #e1e5de}
+.hero-screenshot img{width:100%;height:auto;border:0;border-radius:0;box-shadow:none;filter:drop-shadow(0 18px 22px #244f3c30)}
 .screenshot-caption{font-size:9px;color:#71846f;line-height:1.8;text-align:center;margin-top:17px}
 .screenshot-link{display:block;transition:transform .2s}
 .screenshot-link:hover{transform:translateY(-3px)}
 .screenshots-section{padding-bottom:80px}
 .settings-screenshot{max-width:930px;margin:0 auto;background:#edf2e9;border:1px solid #dce5d7;border-radius:20px;padding:26px 26px 16px}
-.settings-screenshot img{width:100%;height:auto;border-radius:12px;box-shadow:0 14px 30px -15px #244f3c40}
+.settings-screenshot img{width:100%;height:auto;border:0;border-radius:0;box-shadow:none;filter:drop-shadow(0 10px 15px #244f3c30)}
 .settings-screenshot figcaption{font-size:11px;text-align:center;color:#71846f;margin-top:15px}
 @media(max-width:1000px){.real-app-art{transform:none}.hero-screenshot{width:290px}}
 @media(max-width:760px){.real-app-art{min-height:auto;margin-top:28px;margin-bottom:5px}.hero-screenshot{width:min(310px,100%)}.screenshot-caption{font-size:9px;margin-top:18px}.settings-screenshot{padding:12px 12px 14px;border-radius:16px}.settings-screenshot figcaption{font-size:10px}.screenshots-section{padding-bottom:60px}}
