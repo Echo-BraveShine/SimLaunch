@@ -30,8 +30,13 @@ public enum PathDiscovery {
     public static func expand(_ value: String) -> String { (value as NSString).expandingTildeInPath }
     public static func resolve(_ override: String, candidates: [String]) throws -> String {
         let paths = override.isEmpty ? candidates : [override]
-        for value in paths where FileManager.default.isExecutableFile(atPath: expand(value)) { return expand(value) }
+        for value in paths where isExecutableFile(expand(value)) { return expand(value) }
         throw CLIError(L10n.format("Executable not found. Configure its path in Settings. %@", override))
+    }
+    static func isExecutableFile(_ path: String) -> Bool {
+        var directory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: path, isDirectory: &directory)
+            && !directory.boolValue && FileManager.default.isExecutableFile(atPath: path)
     }
     public static func pathCandidates(_ executable: String) -> [String] {
         (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map { String($0) + "/" + executable }
@@ -64,7 +69,7 @@ public enum PathDiscovery {
             let info = (try? Data(contentsOf: infoURL)).flatMap { try? PropertyListSerialization.propertyList(from: $0, format: nil) as? [String: Any] }
             let executable = info?["CFBundleExecutable"] as? String ?? "Simulator"
             guard !executable.contains("/"), executable != ".", executable != ".." else { continue }
-            if FileManager.default.isExecutableFile(atPath: path + "/Contents/MacOS/" + executable) { return path }
+            if isExecutableFile(path + "/Contents/MacOS/" + executable) { return path }
         }
         throw CLIError(L10n.format("Simulator.app or DeviceHub.app not found. Check the selected Xcode or specify an app path in Settings. Searched: %@", (manual.map { [$0] } ?? candidates).joined(separator: ", ")))
     }

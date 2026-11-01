@@ -72,9 +72,8 @@
 "Approval required in System Settings." = "Approval required in System Settings.";
 "Open Login Items Settings" = "Open Login Items Settings";
 "General" = "General";
-"Language, startup and app preferences" = "Language, startup and app preferences";
+"Language, startup and appearance. Changes apply immediately." = "Language, startup and appearance. Changes apply immediately.";
 "Choose the display language for SimLaunch." = "Choose the display language for SimLaunch.";
-"Changes apply immediately." = "Changes apply immediately.";
 "Software updates" = "Software updates";
 "Check for updates…" = "Check for updates…";
 "In-app updates are available in configured release builds." = "In-app updates are available in configured release builds.";
@@ -99,3 +98,8 @@
 "Select All" = "Select All";
 "Window" = "Window";
 "Close Window" = "Close Window";
+"Leave paths empty for automatic discovery. Save path changes to apply them. Supports ~ and spaces." = "Leave paths empty for automatic discovery. Save path changes to apply them. Supports ~ and spaces.";
+"Restore automatic discovery" = "Restore automatic discovery";
+"Clear this platform’s manual paths, then save to apply." = "Clear this platform’s manual paths, then save to apply.";
+"An empty path enables automatic discovery; it does not confirm that the tool is installed." = "An empty path enables automatic discovery; it does not confirm that the tool is installed.";
+"Invalid path for %@: %@" = "Invalid path for %@: %@";

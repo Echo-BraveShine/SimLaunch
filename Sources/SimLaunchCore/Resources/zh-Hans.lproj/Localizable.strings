@@ -72,9 +72,8 @@
 "Approval required in System Settings." = "需要在系统设置中允许。";
 "Open Login Items Settings" = "打开登录项设置";
 "General" = "通用";
-"Language, startup and app preferences" = "语言、启动与应用偏好";
+"Language, startup and appearance. Changes apply immediately." = "语言、启动与外观，修改后立即生效";
 "Choose the display language for SimLaunch." = "选择 SimLaunch 的显示语言。";
-"Changes apply immediately." = "更改会立即生效。";
 "Software updates" = "软件更新";
 "Check for updates…" = "检查更新…";
 "In-app updates are available in configured release builds." = "已配置更新源的发布版支持应用内更新。";
@@ -99,3 +98,8 @@
 "Select All" = "全选";
 "Window" = "窗口";
 "Close Window" = "关闭窗口";
+"Leave paths empty for automatic discovery. Save path changes to apply them. Supports ~ and spaces." = "路径留空时自动查找，更改后需保存才能生效。支持 ~ 和包含空格的路径。";
+"Restore automatic discovery" = "恢复自动查找";
+"Clear this platform’s manual paths, then save to apply." = "清空此平台的手动路径，保存后生效。";
+"An empty path enables automatic discovery; it does not confirm that the tool is installed." = "留空时自动查找，并不代表已找到工具。";
+"Invalid path for %@: %@" = "%@路径无效，请选择正确的文件或目录：%@";

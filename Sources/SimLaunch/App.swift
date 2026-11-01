@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 import SimLaunchCore
 
 @MainActor final class Store: ObservableObject {
@@ -255,11 +256,12 @@ struct SettingsView: View {
     @State private var selected: Platform? = nil
     @State private var draft = Configuration()
     @State private var saved = false
+    @State private var pathError: String?
 
     private var hasChanges: Bool { draft != store.config }
     private var subtitle: String {
         switch selected {
-        case nil: return L10n.text("Language, startup and app preferences")
+        case nil: return L10n.text("Language, startup and appearance. Changes apply immediately.")
         case .iOS: return L10n.text("选择 Xcode 与模拟器应用")
         case .Android: return L10n.text("配置 Android SDK 工具与虚拟设备目录")
         case .HarmonyOS: return L10n.text("连接 DevEco Studio 的模拟器工具")
@@ -315,10 +317,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(selected?.rawValue ?? L10n.text("General")).font(.system(size: 23, weight: .semibold))
                         Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
-                        if selected == nil {
-                            Label(L10n.text("Changes apply immediately."), systemImage: "info.circle")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }.padding(.bottom, 24)
                 if selected == nil {
@@ -344,11 +343,13 @@ struct SettingsView: View {
                             }
                         }.modifier(AdaptiveCard())
                         Label {
-                            Text(L10n.text("路径留空即可自动查找，也可以手动指定。支持 ~ 和包含空格的路径。"))
+                            Text(L10n.text("Leave paths empty for automatic discovery. Save path changes to apply them. Supports ~ and spaces."))
                                 .fixedSize(horizontal: false, vertical: true)
                         } icon: { Image(systemName: "info.circle") }
                         .font(.caption).foregroundStyle(.secondary).lineSpacing(3)
-                        Button(L10n.text("使用自动查找")) { resetSelected() }.buttonStyle(.link)
+                        Button(L10n.text("Restore automatic discovery")) { resetSelected() }.buttonStyle(.link)
+                            .disabled(selected.map { draft.usesAutomaticPaths(for: $0) } ?? true)
+                            .help(L10n.text("Clear this platform’s manual paths, then save to apply."))
                     }.padding(.bottom, 12)
                 }
                 Divider().padding(.top, 12).padding(.bottom, 16)
@@ -357,9 +358,12 @@ struct SettingsView: View {
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                     Button(L10n.text("保存并刷新")) {
-                        store.config = draft
-                        store.save()
-                        saved = true
+                        do {
+                            try draft.validateManualPaths()
+                            store.config = draft
+                            store.save()
+                            saved = true
+                        } catch { pathError = error.localizedDescription }
                     }.buttonStyle(.borderedProminent).controlSize(.large)
                         .disabled(!hasChanges)
                 }.padding(10).modifier(AdaptiveGlass())
@@ -373,9 +377,9 @@ struct SettingsView: View {
             .navigationTitle(L10n.text("SimLaunch 设置"))
             .onAppear { draft = store.config; loginItem.refresh() }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in loginItem.refresh() }
-            .alert(L10n.text("操作失败"), isPresented: Binding(get: { loginItem.error != nil }, set: { if !$0 { loginItem.error = nil } })) {
-                Button(L10n.text("好")) { loginItem.error = nil }
-            } message: { Text(loginItem.error ?? "") }
+            .alert(L10n.text("操作失败"), isPresented: Binding(get: { pathError != nil || loginItem.error != nil }, set: { if !$0 { pathError = nil; loginItem.error = nil } })) {
+                Button(L10n.text("好")) { pathError = nil; loginItem.error = nil }
+            } message: { Text(pathError ?? loginItem.error ?? "") }
     }
 
     private var generalSettings: some View {
@@ -494,6 +498,7 @@ struct SettingsView: View {
                     Text(L10n.text("自动查找")).font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary).padding(.horizontal, 7).padding(.vertical, 3)
                         .background(Color.primary.opacity(0.05), in: Capsule())
+                        .help(L10n.text("An empty path enables automatic discovery; it does not confirm that the tool is installed."))
                 }
             }
             HStack(spacing: 8) {
@@ -508,6 +513,7 @@ struct SettingsView: View {
                     panel.allowsMultipleSelection = false
                     panel.prompt = L10n.text("选择")
                     panel.treatsFilePackagesAsDirectories = !application
+                    if application { panel.allowedContentTypes = [.applicationBundle] }
                     panel.begin { response in
                         if response == .OK, let url = panel.url { text.wrappedValue = url.path }
                     }
@@ -518,12 +524,8 @@ struct SettingsView: View {
         }.padding(18)
     }
     private func resetSelected() {
-        switch selected {
-        case nil: break
-        case .iOS: draft.developerDir = ""; draft.simulatorApp = nil
-        case .Android: draft.emulator = ""; draft.adb = ""; draft.avdHome = ""
-        case .HarmonyOS: draft.harmony = ""
-        }
+        guard let selected else { return }
+        draft.useAutomaticPaths(for: selected)
         saved = false
     }
 }

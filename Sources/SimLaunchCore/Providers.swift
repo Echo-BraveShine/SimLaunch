@@ -92,7 +92,7 @@ public struct AndroidProvider: DeviceProvider {
     public init(_ config: Configuration, launches: LaunchManager, registry: AndroidRegistry = AndroidRegistry(), metadata: AndroidMetadataCache = AndroidMetadataCache()) { self.config = config; self.launches = launches; self.registry = registry; self.metadata = metadata }
     func emulator() throws -> String { try PathDiscovery.resolve(config.emulator, candidates: PathDiscovery.sdkRoots.map { $0 + "/emulator/emulator" } + PathDiscovery.pathCandidates("emulator")) }
     func adb() throws -> String {
-        let sibling = (try? emulator()).map { URL(fileURLWithPath: $0).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("platform-tools/adb").path }
+        let sibling = (try? emulator()).map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("platform-tools/adb").path }
         return try PathDiscovery.resolve(config.adb, candidates: [sibling].compactMap { $0 } + PathDiscovery.sdkRoots.map { $0 + "/platform-tools/adb" } + PathDiscovery.pathCandidates("adb"))
     }
     public func list() async throws -> [Device] {
@@ -135,7 +135,7 @@ public struct AndroidProvider: DeviceProvider {
     public func start(_ d: Device, mode: BootMode) async throws { try await launches.launch(key: d.id, path: emulator(), args: EmulatorLaunchArguments.android(name: d.key, mode: mode), environment: config.androidEnvironment) }
     public func delete(_ d: Device) async throws {
         try DeviceDeletion.validate(d)
-        let root = URL(fileURLWithPath: try emulator()).deletingLastPathComponent().deletingLastPathComponent()
+        let root = URL(fileURLWithPath: try emulator()).resolvingSymlinksInPath().deletingLastPathComponent().deletingLastPathComponent()
         let tools = root.appendingPathComponent("cmdline-tools")
         let versions = (try? FileManager.default.contentsOfDirectory(atPath: tools.path)) ?? []
         let candidates = [tools.appendingPathComponent("latest/bin/avdmanager").path] + versions.sorted().reversed().map { tools.appendingPathComponent($0 + "/bin/avdmanager").path } + [root.appendingPathComponent("tools/bin/avdmanager").path] + PathDiscovery.pathCandidates("avdmanager")
@@ -153,7 +153,10 @@ public struct HarmonyProvider: DeviceProvider {
     let config: Configuration
     let launches: LaunchManager
     public init(_ config: Configuration, launches: LaunchManager) { self.config = config; self.launches = launches }
-    func path() async throws -> String { try PathDiscovery.resolve(config.harmony, candidates: await PathDiscovery.harmonyCandidates()) }
+    func path() async throws -> String {
+        if !config.harmony.isEmpty { return try PathDiscovery.resolve(config.harmony, candidates: []) }
+        return try PathDiscovery.resolve("", candidates: await PathDiscovery.harmonyCandidates())
+    }
     public func list() async throws -> [Device] { try Parsers.harmony(await ProcessRunner().run(path(), ["-list", "-details"])) }
     public func start(_ d: Device, mode: BootMode) async throws { try await launches.launch(key: d.id, path: path(), args: EmulatorLaunchArguments.harmony(name: d.key, mode: mode)) }
     public func delete(_ d: Device) async throws {
