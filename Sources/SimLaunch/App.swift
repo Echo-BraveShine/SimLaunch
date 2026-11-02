@@ -133,6 +133,8 @@ import SimLaunchCore
 }
 struct Panel: View {
     var openSettings: () -> Void
+    var openLogs: (Device) -> Void
+    var openInformation: (Device) -> Void
     var listHeight: CGFloat = 480
     @AppStorage("appLanguage") private var language = "system"
     @State private var deletionCandidate: Device?
@@ -224,6 +226,10 @@ struct Panel: View {
         .contentShape(Rectangle())
         .help([device.detail, device.serial].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "\n"))
         .contextMenu {
+            Button(L10n.text("Device information")) { openInformation(device) }
+            Button(L10n.text("Live logs")) { openLogs(device) }
+                .disabled(device.state == .unavailable)
+            Divider()
             Button(L10n.text("在访达中显示")) { store.showInFinder(device) }
                 .disabled(device.directory == nil)
             Divider()
@@ -340,6 +346,8 @@ struct SettingsView: View {
                                 pathField(L10n.text("虚拟设备目录"), text: $draft.avdHome, placeholder: "~/.android/avd", hint: L10n.text("仅在 AVD 存放位置经过修改时填写。"), directory: true)
                             case .HarmonyOS:
                                 pathField("Emulator", text: $draft.harmony, placeholder: "…/DevEco-Studio.app/Contents/tools/emulator/Emulator", hint: L10n.text("选择 DevEco Studio 内的 Emulator 可执行文件。"))
+                                Divider().padding(.horizontal, 18)
+                                pathField("HDC", text: Binding(get: { draft.hdc ?? "" }, set: { draft.hdc = $0.isEmpty ? nil : $0 }), placeholder: "…/openharmony/toolchains/hdc", hint: L10n.text("HDC is used for live logs. Leave empty to discover it in the selected DevEco Studio SDK."))
                             }
                         }.modifier(AdaptiveCard())
                         Label {

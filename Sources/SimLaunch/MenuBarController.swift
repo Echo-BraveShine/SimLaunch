@@ -13,10 +13,14 @@ import SimLaunchCore
         controller?.showDevices()
         return false
     }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if controller?.shutdownLogs({ sender.reply(toApplicationShouldTerminate: true) }) == true { return .terminateLater }
+        return .terminateNow
+    }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 }
 
-/// Own one status item and one anchored device popover; settings are the only separate window.
+/// Own one status item and one anchored device popover; settings and device logs use independent windows.
 @MainActor final class MenuBarController: NSObject {
     private let store: Store
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -24,6 +28,8 @@ import SimLaunchCore
     private let panelHost = NSHostingController(rootView: AnyView(EmptyView()))
     private var listHeight: CGFloat = 480
     private var settingsWindow: NSWindow?
+    private lazy var logWindows = LogWindowManager(store: store)
+    private lazy var informationWindows = DeviceInformationWindowManager(store: store)
     private var preferencesObserver: NSObjectProtocol?
     private var menuLanguage = ""
 
@@ -47,6 +53,8 @@ import SimLaunchCore
             Task { @MainActor in
                 self?.applyAppearance()
                 self?.settingsWindow?.title = L10n.text("SimLaunch 设置")
+                self?.logWindows.refreshAppearanceAndTitles()
+                self?.informationWindows.updateTitles()
                 if self?.menuLanguage != L10n.language { self?.configureMenus() }
             }
         }
@@ -91,8 +99,15 @@ import SimLaunchCore
     }
 
     private func updatePanel() {
-        panelHost.rootView = AnyView(Panel(openSettings: { [weak self] in self?.showSettings() }, listHeight: listHeight).environmentObject(store))
+        panelHost.rootView = AnyView(Panel(openSettings: { [weak self] in self?.showSettings() }, openLogs: { [weak self] device in self?.showLogs(device) }, openInformation: { [weak self] device in self?.popover.close(); self?.informationWindows.show(device) }, listHeight: listHeight).environmentObject(store))
     }
+
+    private func showLogs(_ device: Device) {
+        popover.close()
+        logWindows.show(device)
+    }
+
+    func shutdownLogs(_ completion: @escaping () -> Void) -> Bool { informationWindows.closeAll(); return logWindows.shutdown(completion) }
 
     @objc private func showSettings() {
         popover.close()

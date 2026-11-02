@@ -41,6 +41,7 @@ public enum Parsers {
             let raw = String(describing: row["isRunning"] ?? "unknown").lowercased()
             let state: DeviceState = ["true", "1"].contains(raw) ? .running : (["false", "0"].contains(raw) ? .stopped : .unknown)
             var device = Device(platform: .HarmonyOS, key: name, name: name, state: state, detail: row["os.osVersion"] as? String ?? "HarmonyOS")
+            device.instanceID = row["uuid"] as? String
             device.directory = row["instancePath"] as? String
             return device
         }

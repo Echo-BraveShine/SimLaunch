@@ -5,7 +5,7 @@ public extension Configuration {
         switch platform {
         case .iOS: return developerDir.isEmpty && (simulatorApp ?? "").isEmpty
         case .Android: return emulator.isEmpty && adb.isEmpty && avdHome.isEmpty
-        case .HarmonyOS: return harmony.isEmpty
+        case .HarmonyOS: return harmony.isEmpty && (hdc ?? "").isEmpty
         }
     }
 
@@ -13,7 +13,7 @@ public extension Configuration {
         switch platform {
         case .iOS: developerDir = ""; simulatorApp = nil
         case .Android: emulator = ""; adb = ""; avdHome = ""
-        case .HarmonyOS: harmony = ""
+        case .HarmonyOS: harmony = ""; hdc = nil
         }
     }
 
@@ -34,7 +34,7 @@ public extension Configuration {
         if let app = simulatorApp, !app.isEmpty {
             _ = try PathDiscovery.resolveSimulator(app, candidates: [])
         }
-        for (field, path) in [("Android Emulator", emulator), ("Android ADB", adb), ("HarmonyOS Emulator", harmony)] where !path.isEmpty {
+        for (field, path) in [("Android Emulator", emulator), ("Android ADB", adb), ("HarmonyOS Emulator", harmony), ("HarmonyOS HDC", hdc ?? "")] where !path.isEmpty {
             guard PathDiscovery.isExecutableFile(PathDiscovery.expand(path)) else { throw invalid(field, path) }
         }
         if !avdHome.isEmpty {

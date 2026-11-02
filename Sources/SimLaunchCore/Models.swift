@@ -11,6 +11,7 @@ public struct Device: Identifiable {
     public var detail: String
     public var directory: String? = nil
     public var serial: String?
+    public var instanceID: String? = nil
     public init(platform: Platform, key: String, name: String, state: DeviceState, detail: String = "", serial: String? = nil) {
         self.platform = platform; self.key = key; self.name = name; self.state = state; self.detail = detail; self.serial = serial
     }
@@ -22,6 +23,7 @@ public struct Configuration: Codable, Equatable {
     public var adb = ""
     public var harmony = ""
     public var avdHome = ""
+    public var hdc: String? = nil
     public init() {}
     public var iosEnvironment: [String: String] { developerDir.isEmpty ? [:] : ["DEVELOPER_DIR": PathDiscovery.expand(developerDir)] }
     public var androidEnvironment: [String: String] { avdHome.isEmpty ? [:] : ["ANDROID_AVD_HOME": PathDiscovery.expand(avdHome)] }

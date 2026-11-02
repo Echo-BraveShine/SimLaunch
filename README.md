@@ -190,6 +190,48 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 
 当前不提供模拟器创建、系统镜像管理或截图。设置 → 通用已加入软件更新入口；应用内安装更新需要已配置 Sparkle 的正式构建和可访问的 Release 更新源，默认开发包仅提供发布页下载入口。完整自动更新链路尚待首次真实发布验证。
 
+## 设备信息
+
+右键设备选择“设备信息”，打开独立窗口；同一设备复用窗口。运行中、停止和不可用设备均可查看，不会自动启动设备。信息按基本信息、配置、系统运行时／镜像、路径及开发环境分组，提供字段搜索、逐项复制、复制全部、导出 UTF-8 报告及折叠的原始信息。已存在的绝对路径提供访达入口。
+
+iOS 读取所选 Xcode 的 `simctl list --json`，只展示指定 UDID 对应的设备、运行时和设备类型；Android 读取 AVD 配置和镜像元数据，连接身份确认后可读取运行设备的系统属性；HarmonyOS 展示指定实例的 `Emulator -list -details` 字段和工具版本。未知字段保留原始名称，字段和值均可搜索。平台不提供的硬件数据不推测，配置值与运行时属性分组展示；CLI 报告的大小不代表本次实际扫描大小。
+
+打开时读取一次，手动刷新时保留原内容直至新查询结束；信息附有来源、刷新时间和逐项查询失败说明。停止设备只能读取离线配置和工具信息，未提供鸿蒙系统内部运行时属性采集。窗口不计算目录递归大小，也不提供修改设备参数的操作。导出包含设备标识和本机路径，仅在用户选择位置后保存。
+
+默认测试覆盖选中设备的隔离、字段解析、配置文件、缺少工具的降级和报告生成。本机三平台只读检查可运行：
+
+```sh
+SIMLAUNCH_TEST_DEVICE_INFO=1 swift test --filter DeviceInformationLiveTests
+```
+
+## 实时日志
+
+在设备行上右键选择 **实时日志**，打开独立日志窗口。同一设备复用窗口，最多同时采集 3 台设备。设备必须处于运行并连接状态；日志窗口不会自动启动模拟器。停止采集后保留当前记录，可手动重新连接；关闭窗口清理该窗口的采集进程，退出应用清理全部自有采集进程，不停止模拟器或全局 adb / hdc 服务。
+
+| 平台 | 日志来源 | 连接要求 |
+| --- | --- | --- |
+| iOS | `xcrun simctl spawn <UDID> log stream --style compact --level debug` | 使用设置中选定的 Xcode；精确指定 UDID |
+| Android | `adb -s <serial> logcat -v threadtime` | 重新确认 AVD 与 emulator serial 的关联 |
+| HarmonyOS | `hdc -t <target> shell hilog` | 设置中的 HDC 路径可留空自动查找或手动填写；通过 UUID / HDC 端口关联，端口为 `notset` 时检查对应 Emulator 进程拥有的本机监听连接；无法唯一关联则提示错误 |
+
+日志窗口沿用应用的圆角卡片、材质、中英文和浅色／深色外观；提供关键词搜索、大小写开关、级别多选、精确 PID 和来源提供的进程名筛选。Android / HarmonyOS 常规格式只有 PID 与标签，没有进程名，进程名输入框会隐藏；iOS 未解析到进程名时该输入框禁用；标签、包名可使用关键词搜索。未知格式和堆栈续行仍保留原文，归为“其他 / 默认”；按 PID 或级别筛选时，没有对应字段的续行可能不匹配。
+
+滚动条位于底部时自动跟随新日志；向上滚动离开底部时暂停跟随，采集继续。离开底部后固定面板当前显示的文本，后台仍更新有界日志缓存；即使缓存淘汰了旧记录，正在阅读的内容也不移动。手动滚回底部或点击“回到最新”后，面板接上当前缓存中的最新日志。显示计数以面板实际显示的记录为准，保留／丢弃计数继续反映后台缓存。“停止采集”停止读取；垃圾桶仅清空本地面板，不清除设备日志。支持选择文字后复制、复制当前显示日志，以及将当前显示日志或全部保留记录导出为 UTF-8 文件。停留阅读历史日志时，复制／导出当前显示日志与面板中的内容一致；导出全部保留日志使用后台当前缓存。导出是点击时的快照，包含来源、目标、筛选条件及丢弃／截断统计。
+
+每个窗口最多保留 **10,000 条或 10 MiB 原文**，先达到限制时淘汰最早记录；单行超过 64 KiB 会截断并标注。界面批量更新，不逐条刷新。日志只在内存中缓存，只有主动导出才保存文件，不上传日志。断线、停止和重新连接均保留已缓存内容；设备删除或重新创建后须从列表重新打开窗口。
+
+日志范围由系统工具决定：iOS 统一日志不等于 Xcode 调试控制台的全部 stdout/stderr，设备隐私字段仍可能脱敏；Android / HarmonyOS 连接时可能先输出缓存历史，原始时间戳保留。不提供离线实时采集、自动跟随应用重启后的 PID、历史全量恢复或网络请求分析。
+
+默认 `swift test` 覆盖分块 UTF-8、解析、筛选、缓存限制、导出快照、进程实时输出、失败重试、超时／取消和停止时的子进程清理。可在三平台各有运行设备时运行实际日志测试（只读取日志，不启动或删除设备）：
+
+```sh
+SIMLAUNCH_TEST_LOG_STREAMS=1 swift test --filter LiveDeviceLogTests
+# 也可单独测试一个平台：iOS / Android / HarmonyOS
+SIMLAUNCH_TEST_LOG_STREAMS=1 SIMLAUNCH_TEST_LOG_PLATFORM=Android swift test --filter LiveDeviceLogTests
+```
+
+本机已分别验证 iOS 27 的统一日志、Android 17 的 logcat、HarmonyOS 5.0.1 的 hilog，以及采集停止后的进程退出。其他 SDK 与系统版本仍需持续验证。Android 输出格式参考 [官方 Logcat 文档](https://developer.android.com/tools/logcat)，HarmonyOS 工具行为以本机 CLI 为准。
+
 ## Release 与更新
 
 已加入 GitHub Actions：main / PR 运行测试和打包；推送 `vX.Y.Z` 标签生成通用应用、签名更新归档，并发布 GitHub Release。需要先配置仓库密钥，操作步骤、凭据清单和验证边界见 [docs/RELEASING.md](docs/RELEASING.md)。Sparkle 2.10.1 已下载，启用 Sparkle 的 Debug 可执行文件已编译通过；正式通用包、远程工作流和跨版本升级仍需在凭据配置完成后验证。
@@ -200,6 +242,9 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 | --- | --- |
 | `Sources/SimLaunch/App.swift` | 设备列表、使用记录、设置及操作协调 |
 | `Sources/SimLaunch/MenuBarController.swift` | 状态栏面板、启动行为、独立设置窗口及分类折叠状态 |
+| `Sources/SimLaunch/DeviceLogView.swift`、`LogSession.swift` | 日志窗口、筛选、导出与采集会话管理 |
+| `Sources/SimLaunchCore/DeviceLogs.swift`、`LogStreamProcess.swift` | 日志解析、有界缓存、UTF-8 分行及流式进程生命周期 |
+| `Sources/SimLaunchCore/LogConnection.swift`、`HarmonyLogTarget.swift` | 采集前身份校验及 HDC 精确关联 |
 | `Sources/SimLaunchCore/AndroidSystemInfo.swift` | Android 镜像与运行时版本读取及缓存 |
 | `Sources/SimLaunch/WindowPresentation.swift` | 设置窗口激活、前置及初始焦点处理 |
 | `Sources/SimLaunch/LoginItemController.swift` | macOS 登录项状态及注册操作 |

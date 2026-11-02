@@ -11,6 +11,7 @@ let package = Package(
     targets: [
         .target(name: "SimLaunchCore", resources: [.process("Resources")]),
         .executableTarget(name: "SimLaunch", dependencies: [.target(name: "SimLaunchCore")] + (withSparkle ? [.product(name: "Sparkle", package: "Sparkle")] : []), resources: [.process("Resources")], linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]),
-        .testTarget(name: "SimLaunchCoreTests", dependencies: ["SimLaunchCore"])
+        .testTarget(name: "SimLaunchCoreTests", dependencies: ["SimLaunchCore"]),
+        .testTarget(name: "SimLaunchUITests", dependencies: ["SimLaunch", "SimLaunchCore"])
     ]
 )

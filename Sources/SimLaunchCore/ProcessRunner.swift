@@ -11,8 +11,11 @@ public struct CLIError: LocalizedError {
 public struct ProcessRunner {
     public init() {}
     public func run(_ path: String, _ args: [String], environment: [String: String] = [:], timeout: TimeInterval = 20) async throws -> String {
-        try await Task.detached {
+        let operation = Task.detached {
             let process = Process()
+            defer {
+                if process.isRunning { process.terminate(); kill(process.processIdentifier, SIGKILL); process.waitUntilExit() }
+            }
             let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             FileManager.default.createFile(atPath: url.path, contents: nil)
             let output = try FileHandle(forWritingTo: url)
@@ -22,6 +25,7 @@ public struct ProcessRunner {
             process.environment = ProcessInfo.processInfo.environment.merging(environment) { _, new in new }
             process.standardOutput = output; process.standardError = output
             process.standardInput = FileHandle.nullDevice
+            try Task.checkCancellation()
             try process.run()
             let deadline = Date().addingTimeInterval(timeout)
             while process.isRunning && Date() < deadline { try await Task.sleep(nanoseconds: 50_000_000) }
@@ -34,7 +38,8 @@ public struct ProcessRunner {
             let text = String(decoding: try Data(contentsOf: url), as: UTF8.self)
             guard process.terminationStatus == 0 else { throw CLIError(L10n.format("Exit code %d: %@", process.terminationStatus, String(text.prefix(3000)))) }
             return text
-        }.value
+        }
+        return try await withTaskCancellationHandler(operation: { try await operation.value }, onCancel: { operation.cancel() })
     }
 }
 
