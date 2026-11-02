@@ -1,0 +1,2 @@
+"NSCameraUsageDescription" = "由 SimLaunch 启动的模拟器可能使用 Mac 摄像头，以测试拍照等相机功能。";
+"NSMicrophoneUsageDescription" = "由 SimLaunch 启动的模拟器可能使用 Mac 麦克风，以测试录音等音频输入功能。";

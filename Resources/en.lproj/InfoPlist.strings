@@ -1,0 +1,2 @@
+"NSCameraUsageDescription" = "Simulators launched by SimLaunch may use your Mac’s camera to test camera features.";
+"NSMicrophoneUsageDescription" = "Simulators launched by SimLaunch may use your Mac’s microphone to test audio input features.";

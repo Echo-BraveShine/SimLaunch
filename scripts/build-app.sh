@@ -17,6 +17,10 @@ ditto "$BIN_DIR/SimLaunch_SimLaunch.bundle" "$APP/Contents/Resources/SimLaunch_S
 cp .build/Branding/SimLaunch.icns "$APP/Contents/Resources/SimLaunch.icns"
 cp LICENSE "$APP/Contents/Resources/LICENSE.txt"
 cp Info.plist "$APP/Contents/Info.plist"
+for APP_LOCALE in en zh-Hans; do
+    mkdir -p "$APP/Contents/Resources/$APP_LOCALE.lproj"
+    cp "Resources/$APP_LOCALE.lproj/InfoPlist.strings" "$APP/Contents/Resources/$APP_LOCALE.lproj/InfoPlist.strings"
+done
 python3 scripts/configure-bundle.py
 if [[ "${SIMLAUNCH_ENABLE_SPARKLE:-0}" == "1" ]]; then
     FRAMEWORK=$(find .build/artifacts -type d -name Sparkle.framework -print -quit)

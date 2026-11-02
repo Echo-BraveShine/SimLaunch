@@ -20,7 +20,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.5</string>
+	<string>0.1.6</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
@@ -29,5 +29,9 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Simulators launched by SimLaunch may use your Mac’s camera to test camera features.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Simulators launched by SimLaunch may use your Mac’s microphone to test audio input features.</string>
 </dict>
 </plist>
