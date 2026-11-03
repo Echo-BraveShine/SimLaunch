@@ -1,5 +1,11 @@
 import Foundation
 
+public struct DeviceToolConnection: Sendable {
+    public let path: String
+    public let target: String
+    public var environment: [String: String] = [:]
+}
+
 public enum LogConnection {
     public static func fingerprint(_ device: Device) -> String {
         var parts = [device.id, device.instanceID ?? ""]
@@ -33,22 +39,32 @@ public enum LogConnection {
         return target
     }
     public static func command(device: Device, configuration config: Configuration, expectedIdentity: String? = nil) async throws -> LogCommand {
+        let connection = try await connection(device: device, configuration: config, expectedIdentity: expectedIdentity)
+        let arguments: [String]
+        switch device.platform {
+        case .iOS: arguments = ["simctl", "spawn", connection.target, "log", "stream", "--style", "compact", "--level", "debug"]
+        case .Android: arguments = ["-s", connection.target, "logcat", "-v", "threadtime"]
+        case .HarmonyOS: arguments = ["-t", connection.target, "shell", "hilog"]
+        }
+        return LogCommand(path: connection.path, arguments: arguments, environment: connection.environment, target: connection.target)
+    }
+    public static func connection(device: Device, configuration config: Configuration, expectedIdentity: String? = nil) async throws -> DeviceToolConnection {
         let runner = ProcessRunner()
         switch device.platform {
         case .iOS:
             let devices = try await IOSProvider(config).list()
             try validate(device, current: devices, expectedIdentity: expectedIdentity)
-            return LogCommand(path: "/usr/bin/xcrun", arguments: ["simctl", "spawn", device.key, "log", "stream", "--style", "compact", "--level", "debug"], environment: config.iosEnvironment, target: device.key)
+            return DeviceToolConnection(path: "/usr/bin/xcrun", target: device.key, environment: config.iosEnvironment)
         case .Android:
             if device.backend == .mumu {
                 let (fresh, adb) = try await MuMuProvider(config).connectedDevice(device, expectedIdentity: expectedIdentity)
-                return LogCommand(path: adb, arguments: ["-s", fresh.serial!, "logcat", "-v", "threadtime"], target: fresh.serial!)
+                return DeviceToolConnection(path: adb, target: fresh.serial!)
             }
             let provider = AndroidProvider(config, launches: LaunchManager())
             let devices = try await provider.list()
             let fresh = try validate(device, current: devices, expectedIdentity: expectedIdentity)
             guard let serial = fresh.serial, serial.hasPrefix("emulator-") else { throw CLIError(L10n.text("Missing emulator serial. Refresh the device list.")) }
-            return LogCommand(path: try provider.adb(), arguments: ["-s", serial, "logcat", "-v", "threadtime"], target: serial)
+            return DeviceToolConnection(path: try provider.adb(), target: serial)
         case .HarmonyOS:
             let path = try await HarmonyProvider(config, launches: LaunchManager()).path()
             let text = try await runner.run(path, ["-list", "-details"])
@@ -63,7 +79,7 @@ public enum LogConnection {
             let runtime = (try? await HarmonyLogTarget.targets(executable: path, name: device.key, directory: device.directory)) ?? []
             try Task.checkCancellation()
             let target = try harmonyTarget(row: row, connected: connected, runtimeTargets: runtime)
-            return LogCommand(path: hdc, arguments: ["-t", target, "shell", "hilog"], target: target)
+            return DeviceToolConnection(path: hdc, target: target)
         }
     }
     @discardableResult private static func validate(_ original: Device, current: [Device], expectedIdentity: String?) throws -> Device {

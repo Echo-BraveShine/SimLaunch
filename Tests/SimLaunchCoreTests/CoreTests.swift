@@ -173,6 +173,18 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(L10n.text(DeviceState.running.rawValue, language: "en"), "Running")
         XCTAssertEqual(L10n.text("保存并刷新", language: "en"), "Save and refresh")
     }
+    func testRefreshAndApplicationIconMessagesAreLocalized() {
+        XCTAssertEqual(L10n.text("刷新", language: "en"), "Refresh")
+        XCTAssertEqual(L10n.text("刷新", language: "zh-Hans"), "刷新")
+        XCTAssertEqual(L10n.text("Verified icon cache", language: "zh-Hans"), "已核验的图标缓存")
+        let message = "The device did not expose a readable application icon."
+        XCTAssertNotEqual(L10n.text(message, language: "zh-Hans"), message)
+        XCTAssertEqual(L10n.text(message, language: "en"), message)
+        for level in LogLevel.allCases {
+            let key = "Log level " + level.rawValue
+            for language in ["en", "zh-Hans"] { XCTAssertNotEqual(L10n.text(key, language: language), key) }
+        }
+    }
     func testDeletionMessageRetainsDeviceIdentityAcrossLanguages() {
         let key = "Permanently delete %@ device “%@” and all its apps and data? This cannot be undone."
         for language in ["en", "zh-Hans"] {

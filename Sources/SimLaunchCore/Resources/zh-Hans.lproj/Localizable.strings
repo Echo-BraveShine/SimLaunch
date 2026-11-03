@@ -279,3 +279,249 @@
 "Configure Android SDK and MuMu tools" = "配置 Android SDK、MuMu 工具与虚拟设备目录";
 
 "MuMu local catalog" = "MuMu 本地设备目录";
+
+"Application management" = "应用管理";
+
+"User applications" = "用户应用";
+
+"System applications" = "系统应用";
+
+"All applications" = "全部应用";
+
+"Search application name or identifier" = "搜索应用名称或包名";
+
+"Application type" = "应用类型";
+
+"The device is offline. The list is retained; application operations are disabled." = "设备已关闭或断开，保留当前列表，应用操作暂不可用。";
+
+"Showing a cached list. Refreshing before enabling uninstall." = "正在显示缓存列表，刷新确认后才可卸载。";
+
+"Reading applications…" = "正在读取应用…";
+
+"No matching applications" = "没有匹配的应用";
+
+"No applications in this category" = "此分类没有应用";
+
+"%d applications shown" = "显示 %d 个应用";
+
+"Names and icons appear when metadata is accessible." = "名称和图标将在可读取时逐步显示。";
+
+"Uninstalling application…" = "正在卸载应用…";
+
+"Reading application details…" = "正在读取应用详情…";
+
+"Device user" = "设备用户";
+
+"Uninstall application?" = "卸载应用？";
+
+"Uninstall" = "卸载";
+
+"Uninstall “%@” (%@) from “%@”? A running application will be closed and its data may be deleted." = "确定从“%3$@”卸载“%1$@”（%2$@）？正在运行的应用会退出，应用数据可能被删除。";
+
+"System application" = "系统应用";
+
+"Application type unknown" = "类型未确认";
+
+"Uninstall this application from the selected device." = "从所选设备卸载此应用。";
+
+"System applications and applications of unknown type cannot be uninstalled." = "系统应用和类型未确认的应用不可卸载。";
+
+"Cannot parse installed applications." = "无法解析已安装应用列表。";
+
+"Cannot confirm the application user." = "无法确认应用所属的设备用户。";
+
+"The application user changed. Refresh before continuing." = "设备用户已切换，请刷新后重试。";
+
+"Only confirmed user applications can be uninstalled." = "仅可卸载已确认的用户应用。";
+
+"This application is no longer installed. Refresh the list." = "此应用已不在设备中，请刷新列表。";
+
+"The device connection changed. Refresh before continuing." = "设备连接已变化，请刷新后重试。";
+
+"Uninstall failed." = "卸载失败。";
+
+"Uninstall could not be verified. Refresh the application list." = "未能确认卸载结果，请刷新应用列表。";
+
+"Some application details could not be read." = "部分应用详情未能读取，可稍后刷新重试。";
+
+"Application identifier mismatch." = "应用标识不一致，已拒绝使用此元数据。";
+
+"App details" = "详情";
+
+"App details are cached while the device is offline." = "设备已离线，当前显示缓存详情。";
+
+"Not provided" = "未提供";
+
+"Application name" = "应用名称";
+
+"Package name" = "包名";
+
+"Bundle ID" = "Bundle ID";
+
+"Version name" = "版本号";
+
+"Build number" = "构建号";
+
+"User application" = "用户应用";
+
+"Icon status" = "图标状态";
+
+"Placeholder icon" = "占位图标";
+
+"Application icon loaded" = "已读取应用图标";
+
+"Application path" = "应用路径";
+
+"Showing saved app details while checking current metadata." = "正在显示已有详情，并核对设备上的最新信息。";
+
+"Metadata availability" = "元数据读取说明";
+
+"Metadata source" = "信息来源";
+
+"Done" = "完成";
+
+"Application bundle path is unavailable." = "无法获取应用包路径。";
+
+"Application Info.plist is unreadable." = "无法读取应用的 Info.plist。";
+
+"No readable standalone icon was found. Asset catalog icons may require platform resource decoding." = "未找到可读取的独立图标文件，资源目录中的图标可能需要平台专用解码。";
+
+"Package metadata could not be read." = "未能读取该应用的包元数据。";
+
+"System application resources are loaded when opening details." = "系统应用的名称和图标资源将在打开详情时尝试读取。";
+
+"AAPT2 is unavailable. Name and icon extraction requires Android SDK Build Tools." = "未找到 AAPT2，提取名称和图标需要 Android SDK Build Tools。";
+
+"Application APK path is unavailable." = "无法获取应用 APK 路径。";
+
+"APK size is unavailable or exceeds the 64 MiB metadata limit." = "无法确定 APK 大小，或 APK 超过 64 MiB 的元数据读取上限。";
+
+"No readable bitmap icon was found. Adaptive XML and split APK resources may not be available." = "未找到可读取的位图图标，自适应 XML 图标和拆分 APK 资源可能无法解析。";
+
+"Application label resources could not be resolved." = "无法解析应用名称资源，暂以包名展示。";
+
+"HarmonyOS resource icons are not decoded; a placeholder is shown." = "暂不解码鸿蒙资源图标，当前使用占位图。";
+
+"minSdk" = "最低 SDK";
+
+"targetSdk" = "目标 SDK";
+
+"firstInstallTime" = "首次安装时间";
+
+"lastUpdateTime" = "最后更新时间";
+
+"apiCompatibleVersion" = "兼容 API 版本";
+
+"apiTargetVersion" = "目标 API 版本";
+
+"versionCode" = "构建号";
+
+"installTime" = "安装时间";
+
+"updateTime" = "更新时间";
+
+"entryModuleName" = "入口模块";
+
+"permissions" = "权限";
+
+"MinimumOSVersion" = "最低系统版本";
+
+"CFBundleExecutable" = "可执行文件";
+
+"CFBundleDevelopmentRegion" = "默认语言";
+
+"DTPlatformName" = "构建平台";
+
+"DTSDKName" = "构建 SDK";
+
+"Icon source" = "图标来源";
+
+"Icon diagnostic" = "图标读取诊断";
+
+"iconModule" = "图标模块";
+
+"iconHapPath" = "图标 HAP 路径";
+
+"iconResourceId" = "图标资源编号";
+
+"The HAP icon location is unavailable." = "无法确定图标所属的 HAP 或资源位置。";
+
+"The HAP is protected, unavailable, mismatched, or its icon format is unsupported." = "图标资源受保护、不可读取、版本不匹配，或格式不受支持；具体原因见读取诊断。";
+
+"The simulator runtime could not decode this icon." = "模拟器运行时未能解码该应用图标。";
+
+"Neither native rendering nor APK bitmap extraction produced an icon." = "系统原生绘制和 APK 位图提取均未能获得此应用图标。";
+
+"The device does not allow reading this application's HAP. Its icon cannot be extracted without access to the matching installation package." = "设备不允许读取此应用的 HAP 安装包；需要可读取的同版本安装包才能解析图标。";
+
+"刷新" = "刷新";
+
+"The device did not expose a readable application icon." = "设备未提供可读取的应用图标。";
+
+"Log stream already active" = "日志采集已在运行。";
+
+"Icon helper output is too large." = "图标辅助程序的输出过大。";
+
+"Icon helper did not return a decodable image." = "图标辅助程序未返回可解码的图片。";
+
+"Icon helper returned an unexpected application." = "图标辅助程序返回的应用与请求不符。";
+
+"Icon helper returned an incomplete batch." = "图标辅助程序返回的批次不完整。";
+
+"The packaged icon helper is missing." = "未找到随应用打包的图标辅助程序。";
+
+"Invalid icon target." = "图标读取目标无效。";
+
+"HAP resource identity mismatch." = "HAP 资源所属的应用或模块不匹配。";
+
+"No matching SDK system package." = "未找到匹配的 SDK 系统安装包。";
+
+"SDK image location is unavailable." = "无法确定 SDK 系统镜像位置。";
+
+"Invalid HAP resource path." = "HAP 资源路径无效。";
+
+"HAP image resource is too large or missing." = "HAP 图像资源过大或不存在。";
+
+"HAP icon resource cannot be resolved." = "无法解析 HAP 图标资源引用。";
+
+"HAP icon format is unsupported." = "暂不支持此 HAP 图标格式。";
+
+"Layered icon rendering failed." = "分层图标合成失败。";
+
+"The SDK HAP does not match the installed application version." = "SDK 中的 HAP 与设备上的应用版本不一致。";
+
+"HDC could not read the installed HAP." = "HDC 无法读取已安装的 HAP。";
+
+"Android PackageManager / Drawable" = "Android PackageManager / Drawable 原生绘制";
+
+"Application bundle image" = "应用包中的图片";
+
+"Simulator UIKit" = "模拟器 UIKit";
+
+"Verified icon cache" = "已核验的图标缓存";
+
+"Verified HAP icon cache" = "已核验的 HAP 图标缓存";
+
+"HDC HAP resources" = "通过 HDC 读取的 HAP 资源";
+
+"Matching SDK system image (read-only)" = "匹配版本的 SDK 系统镜像（只读）";
+
+"simctl / Info.plist" = "simctl / Info.plist";
+
+"dumpsys package / APK" = "dumpsys package / APK";
+
+"bm dump" = "bm dump";
+
+"iconId" = "图标资源编号";
+
+"iconPath" = "图标资源引用";
+
+"label" = "名称资源引用";
+
+"minCompatibleVersionCode" = "最低兼容构建号";
+
+"targetVersion" = "目标 API 版本";
+
+"appProvisionType" = "签名配置类型";
+
+"appDistributionType" = "分发类型";

@@ -279,3 +279,249 @@
 "Configure Android SDK and MuMu tools" = "Configure Android SDK and MuMu tools";
 
 "MuMu local catalog" = "MuMu local catalog";
+
+"Application management" = "Application management";
+
+"User applications" = "User applications";
+
+"System applications" = "System applications";
+
+"All applications" = "All applications";
+
+"Search application name or identifier" = "Search application name or identifier";
+
+"Application type" = "Application type";
+
+"The device is offline. The list is retained; application operations are disabled." = "The device is offline. The list is retained; application operations are disabled.";
+
+"Showing a cached list. Refreshing before enabling uninstall." = "Showing a cached list. Refreshing before enabling uninstall.";
+
+"Reading applications…" = "Reading applications…";
+
+"No matching applications" = "No matching applications";
+
+"No applications in this category" = "No applications in this category";
+
+"%d applications shown" = "%d applications shown";
+
+"Names and icons appear when metadata is accessible." = "Names and icons appear when metadata is accessible.";
+
+"Uninstalling application…" = "Uninstalling application…";
+
+"Reading application details…" = "Reading application details…";
+
+"Device user" = "Device user";
+
+"Uninstall application?" = "Uninstall application?";
+
+"Uninstall" = "Uninstall";
+
+"Uninstall “%@” (%@) from “%@”? A running application will be closed and its data may be deleted." = "Uninstall “%@” (%@) from “%@”? A running application will be closed and its data may be deleted.";
+
+"System application" = "System application";
+
+"Application type unknown" = "Application type unknown";
+
+"Uninstall this application from the selected device." = "Uninstall this application from the selected device.";
+
+"System applications and applications of unknown type cannot be uninstalled." = "System applications and applications of unknown type cannot be uninstalled.";
+
+"Cannot parse installed applications." = "Cannot parse installed applications.";
+
+"Cannot confirm the application user." = "Cannot confirm the application user.";
+
+"The application user changed. Refresh before continuing." = "The application user changed. Refresh before continuing.";
+
+"Only confirmed user applications can be uninstalled." = "Only confirmed user applications can be uninstalled.";
+
+"This application is no longer installed. Refresh the list." = "This application is no longer installed. Refresh the list.";
+
+"The device connection changed. Refresh before continuing." = "The device connection changed. Refresh before continuing.";
+
+"Uninstall failed." = "Uninstall failed.";
+
+"Uninstall could not be verified. Refresh the application list." = "Uninstall could not be verified. Refresh the application list.";
+
+"Some application details could not be read." = "Some application details could not be read.";
+
+"Application identifier mismatch." = "Application identifier mismatch.";
+
+"App details" = "App details";
+
+"App details are cached while the device is offline." = "App details are cached while the device is offline.";
+
+"Not provided" = "Not provided";
+
+"Application name" = "Application name";
+
+"Package name" = "Package name";
+
+"Bundle ID" = "Bundle ID";
+
+"Version name" = "Version name";
+
+"Build number" = "Build number";
+
+"User application" = "User application";
+
+"Icon status" = "Icon status";
+
+"Placeholder icon" = "Placeholder icon";
+
+"Application icon loaded" = "Application icon loaded";
+
+"Application path" = "Application path";
+
+"Showing saved app details while checking current metadata." = "Showing saved app details while checking current metadata.";
+
+"Metadata availability" = "Metadata availability";
+
+"Metadata source" = "Metadata source";
+
+"Done" = "Done";
+
+"Application bundle path is unavailable." = "Application bundle path is unavailable.";
+
+"Application Info.plist is unreadable." = "Application Info.plist is unreadable.";
+
+"No readable standalone icon was found. Asset catalog icons may require platform resource decoding." = "No readable standalone icon was found. Asset catalog icons may require platform resource decoding.";
+
+"Package metadata could not be read." = "Package metadata could not be read.";
+
+"System application resources are loaded when opening details." = "System application resources are loaded when opening details.";
+
+"AAPT2 is unavailable. Name and icon extraction requires Android SDK Build Tools." = "AAPT2 is unavailable. Name and icon extraction requires Android SDK Build Tools.";
+
+"Application APK path is unavailable." = "Application APK path is unavailable.";
+
+"APK size is unavailable or exceeds the 64 MiB metadata limit." = "APK size is unavailable or exceeds the 64 MiB metadata limit.";
+
+"No readable bitmap icon was found. Adaptive XML and split APK resources may not be available." = "No readable bitmap icon was found. Adaptive XML and split APK resources may not be available.";
+
+"Application label resources could not be resolved." = "Application label resources could not be resolved.";
+
+"HarmonyOS resource icons are not decoded; a placeholder is shown." = "HarmonyOS resource icons are not decoded; a placeholder is shown.";
+
+"minSdk" = "minSdk";
+
+"targetSdk" = "targetSdk";
+
+"firstInstallTime" = "firstInstallTime";
+
+"lastUpdateTime" = "lastUpdateTime";
+
+"apiCompatibleVersion" = "apiCompatibleVersion";
+
+"apiTargetVersion" = "apiTargetVersion";
+
+"versionCode" = "versionCode";
+
+"installTime" = "installTime";
+
+"updateTime" = "updateTime";
+
+"entryModuleName" = "entryModuleName";
+
+"permissions" = "permissions";
+
+"MinimumOSVersion" = "MinimumOSVersion";
+
+"CFBundleExecutable" = "CFBundleExecutable";
+
+"CFBundleDevelopmentRegion" = "CFBundleDevelopmentRegion";
+
+"DTPlatformName" = "DTPlatformName";
+
+"DTSDKName" = "DTSDKName";
+
+"Icon source" = "Icon source";
+
+"Icon diagnostic" = "Icon diagnostic";
+
+"iconModule" = "iconModule";
+
+"iconHapPath" = "iconHapPath";
+
+"iconResourceId" = "iconResourceId";
+
+"The HAP icon location is unavailable." = "The HAP icon location is unavailable.";
+
+"The HAP is protected, unavailable, mismatched, or its icon format is unsupported." = "The HAP is protected, unavailable, mismatched, or its icon format is unsupported.";
+
+"The simulator runtime could not decode this icon." = "The simulator runtime could not decode this icon.";
+
+"Neither native rendering nor APK bitmap extraction produced an icon." = "Neither native rendering nor APK bitmap extraction produced an icon.";
+
+"The device does not allow reading this application's HAP. Its icon cannot be extracted without access to the matching installation package." = "The device does not allow reading this application's HAP. Its icon cannot be extracted without access to the matching installation package.";
+
+"刷新" = "Refresh";
+
+"The device did not expose a readable application icon." = "The device did not expose a readable application icon.";
+
+"Log stream already active" = "Log stream already active";
+
+"Icon helper output is too large." = "Icon helper output is too large.";
+
+"Icon helper did not return a decodable image." = "Icon helper did not return a decodable image.";
+
+"Icon helper returned an unexpected application." = "Icon helper returned an unexpected application.";
+
+"Icon helper returned an incomplete batch." = "Icon helper returned an incomplete batch.";
+
+"The packaged icon helper is missing." = "The packaged icon helper is missing.";
+
+"Invalid icon target." = "Invalid icon target.";
+
+"HAP resource identity mismatch." = "HAP resource identity mismatch.";
+
+"No matching SDK system package." = "No matching SDK system package.";
+
+"SDK image location is unavailable." = "SDK image location is unavailable.";
+
+"Invalid HAP resource path." = "Invalid HAP resource path.";
+
+"HAP image resource is too large or missing." = "HAP image resource is too large or missing.";
+
+"HAP icon resource cannot be resolved." = "HAP icon resource cannot be resolved.";
+
+"HAP icon format is unsupported." = "HAP icon format is unsupported.";
+
+"Layered icon rendering failed." = "Layered icon rendering failed.";
+
+"The SDK HAP does not match the installed application version." = "The SDK HAP does not match the installed application version.";
+
+"HDC could not read the installed HAP." = "HDC could not read the installed HAP.";
+
+"Android PackageManager / Drawable" = "Android PackageManager / Drawable";
+
+"Application bundle image" = "Application bundle image";
+
+"Simulator UIKit" = "Simulator UIKit";
+
+"Verified icon cache" = "Verified icon cache";
+
+"Verified HAP icon cache" = "Verified HAP icon cache";
+
+"HDC HAP resources" = "HDC HAP resources";
+
+"Matching SDK system image (read-only)" = "Matching SDK system image (read-only)";
+
+"simctl / Info.plist" = "simctl / Info.plist";
+
+"dumpsys package / APK" = "dumpsys package / APK";
+
+"bm dump" = "bm dump";
+
+"iconId" = "iconId";
+
+"iconPath" = "iconPath";
+
+"label" = "label";
+
+"minCompatibleVersionCode" = "minCompatibleVersionCode";
+
+"targetVersion" = "targetVersion";
+
+"appProvisionType" = "appProvisionType";
+
+"appDistributionType" = "appDistributionType";

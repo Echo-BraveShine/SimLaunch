@@ -35,7 +35,7 @@ public final class LogStreamProcess: @unchecked Sendable {
     public init() { queue.setSpecific(key: queueKey, value: true) }
     public func start(_ command: LogCommand, onEvent: @escaping @Sendable (LogStreamEvent) -> Void) throws {
         try queue.sync {
-            guard pid == 0 else { throw CLIError("Log stream already active") }
+            guard pid == 0 else { throw CLIError(L10n.text("Log stream already active")) }
             var out: [Int32] = [0, 0], err: [Int32] = [0, 0]
             guard pipe(&out) == 0 else { throw POSIXError(.EMFILE) }
             guard pipe(&err) == 0 else { close(out[0]); close(out[1]); throw POSIXError(.EMFILE) }

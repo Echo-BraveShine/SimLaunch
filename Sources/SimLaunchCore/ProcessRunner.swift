@@ -11,6 +11,9 @@ public struct CLIError: LocalizedError {
 public struct ProcessRunner {
     public init() {}
     public func run(_ path: String, _ args: [String], environment: [String: String] = [:], timeout: TimeInterval = 20) async throws -> String {
+        String(decoding: try await runData(path, args, environment: environment, timeout: timeout), as: UTF8.self)
+    }
+    public func runData(_ path: String, _ args: [String], environment: [String: String] = [:], timeout: TimeInterval = 20) async throws -> Data {
         let operation = Task.detached {
             let process = Process()
             defer {
@@ -35,9 +38,10 @@ public struct ProcessRunner {
                 if process.isRunning { kill(process.processIdentifier, SIGKILL) }
                 throw CLIError(L10n.format("Command timed out: %@ %@", URL(fileURLWithPath: path).lastPathComponent, args.joined(separator: " ")))
             }
-            let text = String(decoding: try Data(contentsOf: url), as: UTF8.self)
+            let data = try Data(contentsOf: url)
+            let text = String(decoding: data, as: UTF8.self)
             guard process.terminationStatus == 0 else { throw CLIError(L10n.format("Exit code %d: %@", process.terminationStatus, String(text.prefix(3000)))) }
-            return text
+            return data
         }
         return try await withTaskCancellationHandler(operation: { try await operation.value }, onCancel: { operation.cancel() })
     }

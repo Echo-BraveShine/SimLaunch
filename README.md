@@ -196,6 +196,9 @@ macOS 26+ 的设置导航和操作区域使用原生 Liquid Glass；较旧系统
 ## 测试与验证范围
 
 ```sh
+# 检查中英文翻译键、重复项、格式占位符和源码中的静态翻译引用
+python3 scripts/check-localization.py
+
 # 基础测试；未显式启用的本机集成测试会跳过
 swift test
 
@@ -216,6 +219,54 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 本机此前已验证三平台列表查询、iOS 设备启动及 Device Hub 窗口显示，并检查过设置页、语言切换和图标显示。设备数量、SDK 版本和可用运行时取决于本机环境，不作为功能保证。完整三平台启动／停止／冷启动／删除、登录后自动启动以及跨 macOS 版本兼容性仍需进一步验证。
 
 当前不提供模拟器创建、系统镜像管理或截图。设置 → 通用已加入软件更新入口；应用内安装更新需要已配置 Sparkle 的正式构建和可访问的 Release 更新源，默认开发包仅提供发布页下载入口。完整自动更新链路尚待首次真实发布验证。
+
+## 应用管理
+
+运行中的设备右键提供“应用管理”；未启动、状态未知或不可用的设备不显示该入口。支持 iOS、Android AVD、MuMu 和 HarmonyOS，使用独立窗口，同一设备重复打开会复用窗口。窗口关闭或应用退出时取消查询；设备关闭、断开或身份变化时保留当前列表并禁用操作，不会自动启动设备。
+
+默认显示用户应用，可切换系统应用 / 全部应用，按名称或包名搜索并手动刷新。列表先展示可获得的信息，再以有限并发补齐名称、版本号、构建号和图标；进程内保留最多 4 台设备的缓存，每台缓存的图标数据上限约 10 MiB，重新打开先显示缓存，完成实时核对前不可卸载。不会每 5 秒自动扫描应用或将列表写入磁盘。
+
+- iOS：解析 `simctl listapps` 的属性列表，读取应用元数据和可读取的独立图标文件；仅 `ApplicationType=User` 且未标记不可移除的应用可卸载。独立图标不可读时，在所选模拟器内通过 UIKit 解码 Assets.car 等图标资源。
+- Android / MuMu：读取当前用户，使用同一用户范围的 `pm list packages`、`-3`、`-s` 确认应用类型；查询版本后，优先由所选设备的 PackageManager / Drawable 原生读取名称并绘制图标，支持自适应 XML、矢量和拆分 APK 资源；不用安装辅助 APK。原生读取不可用时，才使用可选的 SDK AAPT2 提取 APK 名称和位图，此回退受权限和 64 MiB 大小限制。
+- HarmonyOS：通过所选 HDC 目标读取 `bm dump -a`、可用时的 `-a -l` 名称和所选应用详情，确认 `isSystemApp`、`removable`、版本和用户范围；按 iconResource 的模块与资源编号定位 HAP，使用所选 SDK 的 restool 解析资源表，读取位图 / SVG 或合成 layered-image 前景和背景。HDC 无权读取系统 HAP 时，尝试从所选模拟器对应的本机 SDK ext4 镜像读取同一路径，并严格核对包名、版本号和构建号后才使用；整个过程不挂载或修改镜像，不提升设备权限。类型未确认的应用只在“全部应用”中显示，禁用卸载。
+
+每个应用的卸载按钮旁提供“详情”。详情以已有列表信息打开，并重新确认设备、用户和应用是否仍存在，再读取最新数据；可查看并复制名称、包名 / Bundle ID、版本号、构建号、类型、图标状态、路径、设备用户及来源提供的其他字段。设备离线时仍可查看已有详情，禁用刷新并明确标注缓存；应用已移除或用户切换时保留原信息并显示查询错误，不将其他应用的元数据套入当前应用。
+
+版本号与构建号分别读取：iOS 使用 `CFBundleShortVersionString` / `CFBundleVersion`，Android 使用 `versionName` / 完整 `versionCode`（保留高 32 位），鸿蒙使用 `versionName` / `versionCode`。缺失字段显示“未提供”，不将构建号充当版本号。iOS 优先读取本地化的 InfoPlist.strings 名称和声明的独立图标，再尝试通用图标；可解码图标统一转为有尺寸上限的 PNG。Android 缓存核对构建号、更新时间与安装路径，避免同版本名称更新后沿用旧名称和图标；APK 元数据还会核对包名。系统应用也会尝试原生图标读取；打开详情时还可执行 APK 资源回退。
+
+图标仍受工具、系统版本和资源访问权限约束：iOS 运行时接口不可用、Android 原生读取被拒绝、鸿蒙 HAP 无法读取且本机没有匹配版本镜像时会保留占位图，并在详情给出原因。不会用其他版本的 SDK 图标或无关图片替代。鸿蒙目前支持普通 ext4 SDK 镜像、可读 HAP 中的位图 / SVG 和 layered-image；不支持加密 HAP、加密 / 压缩 / 非 ext4 镜像或需要尚未实现资源解析方式的图标。仅从资源引用不能保证每个受保护应用都可读取。
+
+图标导出程序源码位于 `Tools/IconHelpers/`，预编译的 Android DEX 与 arm64 / x86_64 iOS Simulator 可执行文件作为 SwiftPM 资源打包。常规构建不额外下载依赖；修改辅助程序后，使用完整 Xcode、Android SDK Build Tools 和 JDK 重新生成：
+
+```sh
+SIMLAUNCH_ANDROID_SDK="$HOME/Library/Android/sdk" \
+SIMLAUNCH_JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" \
+./scripts/build-icon-helpers.sh
+```
+
+Android 辅助程序只在 shell 权限下绘制图标，不加载应用代码、不启动 Activity；临时 DEX 使用随机文件名，查询结束或取消后清理。iOS 辅助程序在指定模拟器内执行，包含运行时检测的 UIKit 兼容适配，后续 Xcode / iOS 更新可能需要调整。输出统一归一化为有尺寸上限的 PNG；SVG 外部资源和活动内容会被拒绝。
+
+列表先读取基本信息，优先为可见行解码图标；Android / MuMu 每批最多 8 个应用共享一次辅助程序上传和运行，随后继续补齐其余应用的名称与图标，保留按名称搜索的能力。三端在可见项之后继续补齐剩余图标，避免依赖界面的行出现回调而漏掉请求；Android 批量读取失败时恢复逐应用原生读取及 APK 资源回退。图标缓存保存在 `~/Library/Caches/dev.ekko.simlaunch/ApplicationIcons-v2`，内存上限约 8 MiB，磁盘定期清理至约 50 MiB / 512 项，最长保留 30 天。缓存不只以包名区分：还核对设备、语言、构建号和资源修订信息；Android 包含用户、更新时间和安装路径，鸿蒙包含更新时间与 HAP / 资源引用，iOS 包含应用路径与本地图标资源修改时间及大小。应用更新会使用新缓存键；列表与详情的主动刷新会绕过图标缓存。应用运行时切换图标但安装信息未改变时，可主动刷新获取新图标。
+
+可选三端真实图标测试（需要三端设备已运行，只读，不卸载应用）：
+
+```sh
+SIMLAUNCH_TEST_APP_ICONS=1 swift test --filter ApplicationIconLiveTests
+# 可用 SIMLAUNCH_TEST_APP_ICON_PLATFORM=iOS / Android / HarmonyOS 单独选择平台
+```
+
+仅提供单应用卸载，默认不允许卸载系统应用或类型不明的应用。确认框显示设备、应用名称与完整包名，说明运行中的应用会退出、数据可能删除；不要求先手动退出应用，也不先发送强制停止命令。卸载前重新检查设备身份、连接、应用类型和用户范围，分别调用 `simctl uninstall`、`pm uninstall --user`、`bm uninstall -n ... -u ...`。同时检查命令状态和返回内容，再重新查询确认应用消失；失败或无法验证时保留应用行，提示刷新。Android / HarmonyOS 的操作限定已确认的设备用户，不提供用户切换或批量卸载。
+
+默认测试覆盖解析、系统应用保护、错误返回、用户 / 连接变化、卸载结果验证，以及窗口在断开和失败时保留列表。可选只读本机检查（至少一台选定平台的设备已运行；不卸载应用）：
+
+```sh
+SIMLAUNCH_TEST_APPS=1 swift test --filter ApplicationsLiveTests.testReadSelectedRunningDevices
+# 可通过 SIMLAUNCH_TEST_APPS_PLATFORM 选择 iOS / Android / MuMu / HarmonyOS
+```
+
+本机已用专门创建的临时应用验证 iOS 与 MuMu 的“应用运行中直接卸载”及卸载后查询；已有用户应用未被卸载。鸿蒙列表、名称、类型与版本解析依据本机 HarmonyOS 7.0.0 的实际输出验证，卸载命令及结果处理有模拟测试覆盖，尚未对真实鸿蒙应用执行卸载。普通 Android AVD 与 MuMu 共用包管理命令，但本次真实 Android 卸载验证使用的是 MuMu。
+
+工具依据：[Android ADB 包管理文档](https://developer.android.com/tools/adb)、[AAPT2 文档](https://developer.android.com/tools/aapt2)、[OpenHarmony bm 工具文档](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/tools/bm-tool.md)。鸿蒙批量 label 查询从 API 20 起支持，旧版不可用时保留包名并尝试详情中的可读名称。
 
 ## 设备信息
 

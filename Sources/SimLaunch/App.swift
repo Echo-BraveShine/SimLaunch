@@ -149,6 +149,7 @@ struct Panel: View {
     var openSettings: () -> Void
     var openLogs: (Device) -> Void
     var openInformation: (Device) -> Void
+    var openApplications: (Device) -> Void
     var revealInFinder: (Device) -> Void
     var listHeight: CGFloat = 480
     @AppStorage("appLanguage") private var language = "system"
@@ -159,17 +160,8 @@ struct Panel: View {
             HStack {
                 Image(nsImage: AppBrand.icon).resizable().frame(width: 30, height: 30)
                 Text("SimLaunch").font(.title2.bold()); Spacer()
-                Button { Task { await store.refresh(manual: true) } } label: {
-                    ZStack {
-                        Image(systemName: "arrow.clockwise").opacity(store.manuallyRefreshing ? 0 : 1)
-                        if store.manuallyRefreshing {
-                            ProgressView().controlSize(.mini).accessibilityHidden(true)
-                        }
-                    }.frame(width: 16, height: 16)
-                }.disabled(store.manuallyRefreshing)
-                    .help(L10n.text("刷新"))
-                    .accessibilityLabel(L10n.text(store.manuallyRefreshing ? "Refreshing…" : "刷新"))
-                Button { openSettings() } label: { Image(systemName: "gearshape") }
+                RefreshButton(isLoading: store.manuallyRefreshing) { Task { await store.refresh(manual: true) } }
+                Button { openSettings() } label: { Image(systemName: "gearshape") }.help(L10n.text("Settings…")).accessibilityLabel(L10n.text("Settings…"))
             }.padding(8).modifier(AdaptiveGlass())
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
@@ -241,6 +233,9 @@ struct Panel: View {
         .contentShape(Rectangle())
         .help([device.detail, device.serial].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "\n"))
         .contextMenu {
+            if device.state == .running {
+                Button(L10n.text("Application management")) { openApplications(device) }
+            }
             Button(L10n.text("Device information")) { openInformation(device) }
             Button(L10n.text("Live logs")) { openLogs(device) }
                 .disabled(device.state == .unavailable)

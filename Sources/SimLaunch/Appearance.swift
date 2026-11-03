@@ -110,3 +110,21 @@ struct GeneralSettingsIcon: View {
             .background(Color(red: 0.43, green: 0.47, blue: 0.54), in: RoundedRectangle(cornerRadius: size * 0.25))
     }
 }
+
+struct RefreshButton: View {
+    let isLoading: Bool
+    var isDisabled = false
+    var loadingLabel = "Refreshing…"
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Image(systemName: "arrow.clockwise").opacity(isLoading ? 0 : 1)
+                if isLoading { ProgressView().controlSize(.mini).accessibilityHidden(true) }
+            }.frame(width: 16, height: 16)
+        }
+        .disabled(isLoading || isDisabled)
+        .help(L10n.text("刷新"))
+        .accessibilityLabel(L10n.text(isLoading ? loadingLabel : "刷新"))
+    }
+}

@@ -30,6 +30,7 @@ import SimLaunchCore
     private var settingsWindow: NSWindow?
     private lazy var logWindows = LogWindowManager(store: store)
     private lazy var informationWindows = DeviceInformationWindowManager(store: store)
+    private lazy var applicationWindows = ApplicationManagementWindowManager(store: store)
     private var preferencesObserver: NSObjectProtocol?
     private var deactivationObserver: NSObjectProtocol?
     private var menuLanguage = ""
@@ -61,6 +62,7 @@ import SimLaunchCore
                 self?.settingsWindow?.title = L10n.text("SimLaunch 设置")
                 self?.logWindows.refreshAppearanceAndTitles()
                 self?.informationWindows.updateTitles()
+                self?.applicationWindows.updateTitles()
                 if self?.menuLanguage != L10n.language { self?.configureMenus() }
             }
         }
@@ -71,25 +73,38 @@ import SimLaunchCore
         else { showDevices() }
     }
 
-    func showDevices(remainingAttempts: Int = 20) {
+    func showDevices(remainingAttempts: Int = 30, previousFrame: NSRect? = nil) {
         guard !popover.isShown else { return }
-        // The status item's window exists before the menu bar gives it a real frame.
-        // Waiting only for a non-nil window can anchor the launch popover at (0, 0).
+        // The menu bar can move a newly registered status item over several layout passes.
+        // Wait for its actual screen rect to settle before presenting the launch popover.
         guard let button = statusItem.button, let window = button.window,
-              window.frame.height > 0, let screen = window.screen,
+              !button.bounds.isEmpty, !window.frame.isEmpty, let screen = window.screen,
               screen.frame.intersects(window.frame) else {
             if remainingAttempts > 0 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in self?.showDevices(remainingAttempts: remainingAttempts - 1) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in self?.showDevices(remainingAttempts: remainingAttempts - 1) }
+            }
+            return
+        }
+        window.contentView?.layoutSubtreeIfNeeded()
+        let buttonFrame = window.convertToScreen(button.convert(button.bounds, to: nil))
+        guard screen.frame.intersects(buttonFrame) else {
+            if remainingAttempts > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in self?.showDevices(remainingAttempts: remainingAttempts - 1) }
+            }
+            return
+        }
+        if previousFrame != buttonFrame {
+            guard remainingAttempts > 0 else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                self?.showDevices(remainingAttempts: remainingAttempts - 1, previousFrame: buttonFrame)
             }
             return
         }
         applyAppearance()
-        let buttonFrame = window.convertToScreen(button.convert(button.bounds, to: nil))
-        // Anchor below the entire menu bar, rather than the inset icon button.
-        // Use this window's screen so secondary displays and scaled screens work too.
-        let top = min(buttonFrame.minY, window.frame.minY, screen.visibleFrame.maxY) - 6
-        let distance = buttonFrame.minY - top
-        let anchor = button.bounds.offsetBy(dx: 0, dy: button.isFlipped ? distance : -distance)
+        // Let AppKit position the arrow against the real button. An offset anchor
+        // outside its bounds drifts on notched, scaled or automatically hidden menu bars.
+        let anchor = button.bounds
+        let top = buttonFrame.minY
         let panelChrome = panelHost.view.fittingSize.height - listHeight
         let availableHeight = top - screen.visibleFrame.minY - 30 // Reserve the popover frame and arrow.
         let height = max(0, min(480, availableHeight - panelChrome))
@@ -105,7 +120,7 @@ import SimLaunchCore
     }
 
     private func updatePanel() {
-        panelHost.rootView = AnyView(Panel(openSettings: { [weak self] in self?.showSettings() }, openLogs: { [weak self] device in self?.showLogs(device) }, openInformation: { [weak self] device in self?.popover.close(); self?.informationWindows.show(device) }, revealInFinder: { [weak self] device in self?.revealInFinder(device) }, listHeight: listHeight).environmentObject(store))
+        panelHost.rootView = AnyView(Panel(openSettings: { [weak self] in self?.showSettings() }, openLogs: { [weak self] device in self?.showLogs(device) }, openInformation: { [weak self] device in self?.popover.close(); self?.informationWindows.show(device) }, openApplications: { [weak self] device in self?.popover.close(); self?.applicationWindows.show(device) }, revealInFinder: { [weak self] device in self?.revealInFinder(device) }, listHeight: listHeight).environmentObject(store))
     }
 
     private func revealInFinder(_ device: Device) {
@@ -128,7 +143,7 @@ import SimLaunchCore
         logWindows.show(device)
     }
 
-    func shutdownLogs(_ completion: @escaping () -> Void) -> Bool { informationWindows.closeAll(); return logWindows.shutdown(completion) }
+    func shutdownLogs(_ completion: @escaping () -> Void) -> Bool { informationWindows.closeAll(); applicationWindows.closeAll(); return logWindows.shutdown(completion) }
 
     @objc private func showSettings() {
         popover.close()
