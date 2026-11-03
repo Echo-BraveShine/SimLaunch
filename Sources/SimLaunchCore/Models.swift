@@ -2,8 +2,12 @@ import Foundation
 
 public enum Platform: String, Codable, CaseIterable, Identifiable { case iOS, Android, HarmonyOS; public var id: String { rawValue } }
 public enum DeviceState: String { case stopped = "已停止", running = "运行中", starting = "启动中", unavailable = "不可用", unknown = "状态未知" }
+public enum DeviceBackend: String { case standard, mumu }
 public struct Device: Identifiable {
-    public var id: String { platform.rawValue + ":" + key }
+    public var backend: DeviceBackend = .standard
+    public var isOfflineSnapshot = false
+    public var supportsColdBoot: Bool { platform != .iOS && backend != .mumu }
+    public var id: String { platform.rawValue + ":" + (backend == .mumu ? "MuMu:" : "") + key }
     public let platform: Platform
     public let key: String
     public let name: String
@@ -24,6 +28,7 @@ public struct Configuration: Codable, Equatable {
     public var harmony = ""
     public var avdHome = ""
     public var hdc: String? = nil
+    public var mumuTool: String? = nil
     public init() {}
     public var iosEnvironment: [String: String] { developerDir.isEmpty ? [:] : ["DEVELOPER_DIR": PathDiscovery.expand(developerDir)] }
     public var androidEnvironment: [String: String] { avdHome.isEmpty ? [:] : ["ANDROID_AVD_HOME": PathDiscovery.expand(avdHome)] }

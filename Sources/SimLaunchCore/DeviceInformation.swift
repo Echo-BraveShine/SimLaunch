@@ -118,6 +118,47 @@ public enum DeviceInformationReader {
             if let version = await query("Xcode", "/usr/bin/xcodebuild", ["-version"], environment: config.iosEnvironment) { tools["Xcode"] = version.trimmingCharacters(in: .whitespacesAndNewlines) }
             add("Development environment", source: "xcrun / xcodebuild", object: tools)
         case .Android:
+            if device.backend == .mumu {
+                let provider = MuMuProvider(config)
+                do {
+                    guard let fresh = try await provider.list().first(where: { $0.id == device.id }),
+                          LogConnection.fingerprint(fresh) == (expectedIdentity ?? LogConnection.fingerprint(device)) else {
+                        throw CLIError(L10n.text("Cannot confirm the selected device connection."))
+                    }
+                    currentState(fresh.state)
+                    if fresh.isOfflineSnapshot {
+                        add("Device configuration", source: L10n.text("MuMu local catalog"), object: ["index": fresh.key, "name": fresh.name, "bundle_path": fresh.directory ?? ""])
+                    } else {
+                        let output = try await provider.rawList()
+                        guard let selected = try MuMuProvider.parse(output).first(where: { $0.id == fresh.id }),
+                              LogConnection.fingerprint(selected) == LogConnection.fingerprint(fresh),
+                              let row = try MuMuProvider.rows(output).first(where: { String(describing: $0["index"] ?? "") == device.key }) else {
+                            throw CLIError(L10n.text("Cannot confirm the selected device connection."))
+                        }
+                        add("Device configuration", source: "mumutool info", object: row)
+                    }
+                    if let directory = fresh.directory, let text = file(directory + "/setting/vm.json"),
+                       let data = text.data(using: .utf8), let settings = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        add("MuMu settings", source: "MuMu · vm.json", object: settings)
+                    }
+                    if let path = try? await provider.path() {
+                        var tools: [String: Any] = ["mumutool": path]
+                        if let version = await query("mumutool", path, ["--version"]) { tools["CLI version"] = version.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        add("Development environment", source: "MuMu", object: tools)
+                    }
+                    if fresh.state == .running {
+                        let (connected, adb) = try await provider.connectedDevice(fresh, expectedIdentity: expectedIdentity)
+                        if let serial = connected.serial, let text = await query("getprop", adb, ["-s", serial, "shell", "getprop"]) {
+                            var values: [String: String] = [:]
+                            for line in text.components(separatedBy: .newlines) {
+                                let pair = line.components(separatedBy: "]: [")
+                                if pair.count == 2 { values[String(pair[0].dropFirst())] = String(pair[1].dropLast()) }
+                            }
+                            add("Runtime properties", source: "MuMu · adb getprop", object: values)
+                        }
+                    }
+                } catch { if !Task.isCancelled { result.warnings.append(error.localizedDescription) } }
+            } else {
             let provider = AndroidProvider(config, launches: LaunchManager())
             var tools: [String: Any] = [:]
             if let emulator = try? provider.emulator() {
@@ -159,6 +200,7 @@ public enum DeviceInformationReader {
                 } catch { if !Task.isCancelled { result.warnings.append(error.localizedDescription) } }
             } else { result.warnings.append(L10n.text("ADB tool not found.")) }
             add("Development environment", source: "Android SDK", object: tools)
+            }
         case .HarmonyOS:
             let provider = HarmonyProvider(config, launches: LaunchManager())
             var tools: [String: Any] = [:]

@@ -6,7 +6,7 @@ SimLaunch 是使用 SwiftUI 编写的 macOS 模拟器管理工具，提供锚定
 
 应用信息统一维护在根目录 `Info.plist`：`CFBundleShortVersionString` 是版本号，`CFBundleVersion` 是本地默认构建号。打包时复制该文件；正式发布要求 Git 标签 `vX.Y.Z` 与其中的版本号一致，CI 单独生成递增构建号。设置页面、Sparkle 和 Homebrew 均读取最终应用包的版本信息。直接通过 Swift Package / Xcode 运行未打包的可执行文件时，设置页面仍显示开发模式标识。
 
-项目通过 Swift Package 管理，默认开发模式没有第三方 Swift 包依赖；正式更新版通过 `SIMLAUNCH_ENABLE_SPARKLE=1` 启用固定版本的 Sparkle 2.10.1。各平台功能仍依赖本机安装的 Xcode、Android SDK 或 DevEco Studio；SimLaunch 不负责创建模拟器、下载 SDK、安装系统镜像或接受开发工具许可。
+项目通过 Swift Package 管理，默认开发模式没有第三方 Swift 包依赖；正式更新版通过 `SIMLAUNCH_ENABLE_SPARKLE=1` 启用固定版本的 Sparkle 2.10.1。各平台功能仍依赖本机安装的 Xcode、Android SDK、MuMuPlayer 或 DevEco Studio；SimLaunch 不负责创建模拟器、下载 SDK、安装系统镜像或接受开发工具许可。
 
 ## 环境要求
 
@@ -15,6 +15,7 @@ SimLaunch 是使用 SwiftUI 编写的 macOS 模拟器管理工具，提供锚定
 | 运行应用 | 部署目标为 macOS 13+；尚未在全部支持版本上完成实机验证 |
 | 编译源码 | 使用包含 macOS 26 或更新 SDK 的 Xcode，以编译 Liquid Glass 接口；当前本机验证环境为 Xcode 27.1、Swift 6.4、Apple Silicon |
 | iOS 管理 | 完整 Xcode、可用的 simctl，以及与设备运行时兼容的 Simulator.app 或 DeviceHub.app |
+| MuMu 管理 | MuMuPlayer Mac 版及其 mumutool；管理器关闭时可从本地目录读取设备，日志需要运行设备及可用的 ADB 连接 |
 | Android 管理 | Android SDK 中的 emulator、adb；删除 AVD 还需要 avdmanager 及其可用的 Java 运行环境 |
 | HarmonyOS 管理 | DevEco Studio 的 Emulator CLI；当前解析基于本机 DevEco Studio 26 的实际 JSON 输出 |
 
@@ -81,7 +82,7 @@ open dist/SimLaunch.app
 - “常用”位于列表顶部，记录通过 SimLaunch 成功启动到目标状态或成功执行 iOS“显示”的设备，最近一次排在最前，最多显示 5 台当前可用的设备。记录保存在本机；没有可显示记录时隐藏，已删除或当前不可用的设备不显示。它不追踪其他开发工具中的使用行为，平台分组仍保留完整列表。
 - 启动、停止和删除前重新查询设备状态；同一设备操作期间禁用重复操作。不同工具同时修改设备状态时仍可能出现竞争，错误会提示重试。
 - 完成一轮查询后等待约 5 秒再自动刷新，也可手动刷新。自动查询不显示加载动画；用户点击刷新后，刷新按钮原位显示加载动画，完成后恢复图标。若自动查询正在进行，手动刷新会复用该轮查询并显示其进度。三个平台依次查询，因此实际刷新间隔包含查询耗时；某平台失败会保留它原有条目并标记状态未知，随后继续查询其他平台。
-- 查询错误显示在列表中，操作错误使用弹窗。Android / HarmonyOS 启动器输出写入 `~/Library/Logs/SimLaunch/`；该目录不是所有操作的统一日志。
+- 查询错误显示在列表中，操作错误使用弹窗。Android AVD / HarmonyOS 启动器输出写入 `~/Library/Logs/SimLaunch/`；该目录不是所有操作的统一日志。
 
 ### 右键菜单
 
@@ -90,12 +91,12 @@ open dist/SimLaunch.app
 | 复制设备名称 | 全部 | 复制设备原名 |
 | 复制设备 UDID | iOS | 复制 simctl 返回的 UDID |
 | 在访达中显示 | 全部 | 定位设备数据目录；无法解析路径时禁用，目录不存在时提示错误 |
-| 冷启动 | Android、HarmonyOS | 仅已停止设备可用；Android 使用 `-no-snapshot-load`，HarmonyOS 使用 `-bootMode coldboot`，不请求清空用户数据 |
+| 冷启动 | Android AVD、HarmonyOS | 仅已停止设备可用；Android 使用 `-no-snapshot-load`，HarmonyOS 使用 `-bootMode coldboot`，不请求清空用户数据 |
 | 删除当前设备 | 全部 | 仅已停止设备可用，iOS 不可用设备也允许删除；需确认，并再次查询状态后执行 |
 
 删除调用平台工具：iOS 使用 `simctl delete UDID`，Android 使用 `avdmanager delete avd -n NAME`，HarmonyOS 使用 `Emulator -delete NAME -force`。这会删除所选虚拟设备及其数据，无法通过 SimLaunch 撤销；不会请求卸载共享系统镜像。当前项目未通过删除现有用户设备进行端到端验证。
 
-“在访达中显示”的路径来源：iOS 优先使用 simctl 的 dataPath，缺失时回退到用户默认 CoreSimulator 设备目录；Android 读取 AVD 的 `.ini` 配置；HarmonyOS 使用 instancePath。自定义设备集合、缺失配置或缺失目录可能导致该功能不可用。
+“在访达中显示”的路径来源：iOS 优先使用 simctl 的 dataPath，缺失时回退到用户默认 CoreSimulator 设备目录；Android 读取 AVD 的 `.ini` 配置；HarmonyOS 使用 instancePath；MuMu 使用 CLI 返回的 bundle_path 或本地 vms 映射。自定义设备集合、缺失配置或缺失目录可能导致该功能不可用。
 
 ## 设置
 
@@ -141,6 +142,32 @@ Device Hub 通过 `devices://device/open?id=<UDID>` 打开目标设备，旧版 
 无法关联名称的启动中 serial 不单独生成设备行，并暂时将未关联 AVD 标记为状态未知以阻止重复启动。AndroidRegistry 保留仍出现在 adb 列表中的 serial 与已确认名称的关联；serial 从列表消失后移除缓存。连接成功但 sys.boot_completed 尚未返回 1 时标记“启动中”，返回 1 后才标记“运行中”。这仍不代表所有应用均已就绪。真正的多个运行实例仍可按 serial 分别停止。
 
 设备详情优先显示 `Android 15 · API 35 · arm64` 这样的系统版本、API 等级和架构。停止时读取 AVD 配置及镜像的 `source.properties`、`build.prop`，支持自定义目录和小数 API 等级；运行就绪后用 getprop 校验并缓存。镜像或配置变化、设备断开后相应缓存失效。不能确认系统版本时仅显示已知的 API / 架构，不根据设备名称猜测版本；serial 保留给设备关联、停止操作和悬停详情。
+
+### MuMu（Android 分类）
+
+支持网易 MuMuPlayer **Mac 版**，设备放在 Android 分类内，以 `MuMu` 标记来源，与 Android Studio AVD 使用独立身份和操作命令。设置 → Android 中可填写 MuMu Tool 路径；留空查找 `/Applications/MuMuPlayer.app/Contents/MacOS/mumutool`、用户 Applications、Spotlight 索引的 MuMu 应用以及继承的 PATH。安装目录变化时可手动指定。
+
+设备列表优先解析 `mumutool info all` 的 JSON，包括实例编号、名称、状态、`bundle_path` 和 `adb_port`。管理服务未启动或尚未就绪时，读取 MuMu 应用标识对应的 `~/Library/Application Support/<bundle-id>/vms/<index>` 映射及目标目录的 `setting/vm.json`，因此 MuMu 未打开时也能显示设备。不会扫描未注册的 `.mad` 备份，也不会使用磁盘中可能过期的 ADB 端口。后台刷新不会打开 MuMu。若有存活的 MuMu 模拟器进程，离线设备保守显示状态未知；进程检查失败则保留查询错误，不将设备误判为已停止。列表中的“运行中”来自 MuMu 管理器，不保证 Android 或 ADB 已就绪。
+
+MuMu 关闭时，点击设备“启动”会通过所选 MuMu 应用打开该设备的 `.mad` 数据包，等待管理服务可用并核对实例目录与编号；如设备已在此过程中启动，则不再次发送启动命令。服务在线时，启动、停止、删除分别调用 `mumutool open INDEX`、`close INDEX`、`delete INDEX`。离线列表中的删除按钮禁用，需要先打开 MuMu 管理器再删除。删除仍需二次确认且只允许已停止设备；修改前重新核对实例身份，避免编号被复用后操作到另一台设备。CLI 即使退出码为 0，也会检查 JSON 内的 `errcode`。未确认支持的冷启动命令不展示。
+
+支持最近使用、复制设备名称、在访达中显示数据包、设备信息和实时日志。设备信息包含所选实例的 CLI 字段、`setting/vm.json` 配置和运行设备的 getprop；读取不到的字段不推测。运行且已连接 ADB 时，列表显示实际 Android 版本、API 和架构；停止时没有可验证的版本来源则只显示 `MuMu · Android`。
+
+MuMu 默认使用应用自带的 ADB；设置中的手动 ADB 路径也适用于 MuMu。后台刷新仅查询已连接的目标；主动打开日志或读取运行信息时，根据所选实例的当前端口执行 `adb connect 127.0.0.1:PORT`，确认此目标在线后再采集 `logcat`，不会挑选其他已连接设备。连接失败请检查 MuMu 的开发者 / ADB 设置并等待系统启动。
+
+默认测试使用模拟 CLI 验证状态解析、精确设备操作、错误处理、编号复用保护、旧配置迁移和 ADB 目标隔离，不启动或删除真实设备。可选本机检查（MuMu 管理器需已打开，已有运行设备时同时读取少量日志和设备信息，不启动、停止或删除设备）：
+
+```sh
+SIMLAUNCH_TEST_MUMU=1 swift test --filter MuMuLiveTests
+
+# 可选：MuMu 管理器与设备均已退出时，验证离线发现，不启动设备
+SIMLAUNCH_TEST_MUMU_OFFLINE=1 swift test --filter MuMuOfflineLiveTests.testClosedManagerCatalog
+
+# 可选：真实启动指定的离线设备，测试完成后将该设备停止；会打开 MuMu
+SIMLAUNCH_TEST_MUMU_START_INDEX=1 swift test --filter MuMuOfflineLiveTests.testStartSelectedOfflineDeviceAndRestoreItToStopped
+```
+
+本次兼容依据为本机 MuMuPlayer 1.9.9 / mumutool 1.0.0 的实际输出；其他版本需继续验证，Windows 的 MuMuManager.exe 不在支持范围内。已在本机验证 MuMu 完全退出时的设备发现，以及自动唤起后启动指定 Phone、停止并恢复原状态的流程，其他设备保持关闭。删除仅由模拟 CLI 测试覆盖，未对现有用户设备执行真实删除。
 
 ### HarmonyOS
 

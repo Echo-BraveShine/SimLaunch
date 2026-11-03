@@ -263,3 +263,19 @@
 "System image" = "系统镜像";
 "System image directory" = "系统镜像目录";
 "System image metadata" = "系统镜像元数据";
+
+"MuMu tool hint" = "选择 MuMuPlayer.app 内的 mumutool；留空自动查找。MuMu 关闭时也可显示设备，点击启动会自动打开 MuMu。未指定上方 ADB 路径时使用 MuMu 自带的 ADB。";
+
+"MuMu manager unavailable" = "无法连接 MuMu 管理器，请打开 MuMuPlayer 后刷新。";
+
+"Invalid MuMu response" = "MuMu 返回了无法识别的内容，请检查安装版本。";
+
+"MuMu cold boot unsupported" = "当前 MuMu 版本没有经过验证的冷启动命令。";
+
+"MuMu ADB unavailable" = "无法通过 ADB 连接此 MuMu 设备，请检查其开发者 / ADB 设置，并等待 Android 完成启动。";
+
+"MuMu settings" = "MuMu 设备配置";
+
+"Configure Android SDK and MuMu tools" = "配置 Android SDK、MuMu 工具与虚拟设备目录";
+
+"MuMu local catalog" = "MuMu 本地设备目录";

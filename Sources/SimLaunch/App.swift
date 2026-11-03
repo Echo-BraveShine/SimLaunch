@@ -37,6 +37,9 @@ import SimLaunchCore
     func provider(_ platform: Platform) -> any DeviceProvider {
         switch platform { case .iOS: return IOSProvider(config); case .Android: return AndroidProvider(config, launches: launches, registry: androidRegistry, metadata: androidMetadata); case .HarmonyOS: return HarmonyProvider(config, launches: launches) }
     }
+    func provider(_ device: Device) -> any DeviceProvider {
+        device.backend == .mumu ? MuMuProvider(config) : provider(device.platform)
+    }
     func save() {
         UserDefaults.standard.set(try? JSONEncoder().encode(config), forKey: "configuration")
         Task { await refresh() }
@@ -55,8 +58,13 @@ import SimLaunchCore
             do { next += try await provider(platform).list() }
             catch {
                 failures.append("\(platform.rawValue)：\(error.localizedDescription)")
-                next += devices.filter { $0.platform == platform }.map { var d = $0; d.state = .unknown; return d }
+                next += devices.filter { $0.platform == platform && $0.backend == .standard }.map { var d = $0; d.state = .unknown; return d }
             }
+        }
+        do { next += try await MuMuProvider(config).listIfInstalled() }
+        catch {
+            failures.append("MuMu：" + error.localizedDescription)
+            next += devices.filter { $0.backend == .mumu }.map { var d = $0; d.state = .unknown; return d }
         }
         for (id, transition) in pending {
             if let d = next.first(where: { $0.id == id }), d.state == transition.0 {
@@ -88,9 +96,12 @@ import SimLaunchCore
         Task {
             defer { busy.remove(device.id) }
             do {
-                let source = provider(device.platform)
+                let source = provider(device)
                 let current = try await source.list()
                 guard let fresh = current.first(where: { $0.id == device.id }) else { throw CLIError(L10n.text("设备已消失，请刷新")) }
+                guard device.backend != .mumu || LogConnection.fingerprint(device) == LogConnection.fingerprint(fresh) else {
+                    throw CLIError(L10n.text("Device identity changed. Reopen device information from the device list."))
+                }
                 try DeviceDeletion.validate(fresh)
                 try await source.delete(fresh)
                 devices.removeAll { $0.id == device.id }
@@ -102,16 +113,19 @@ import SimLaunchCore
     }
     func toggle(_ device: Device, mode: BootMode = .normal) {
         guard !busy.contains(device.id) else { return }
-        if mode == .cold && (device.platform == .iOS || device.state != .stopped) { return }
+        if mode == .cold && (!device.supportsColdBoot || device.state != .stopped) { return }
         busy.insert(device.id)
         Task {
             do {
                 // Recheck authoritative state immediately before mutation.
-                let current = try await provider(device.platform).list()
+                let current = try await provider(device).list()
                 guard let fresh = current.first(where: { $0.id == device.id }) else { throw CLIError(L10n.text("设备已消失，请刷新")) }
+                guard device.backend != .mumu || LogConnection.fingerprint(device) == LogConnection.fingerprint(fresh) else {
+                    throw CLIError(L10n.text("Device identity changed. Reopen device information from the device list."))
+                }
                 let stop = device.state == .running
-                if stop && fresh.state == .running { try await provider(device.platform).stop(fresh) }
-                else if !stop && fresh.state == .stopped { try await provider(device.platform).start(fresh, mode: mode) }
+                if stop && fresh.state == .running { try await provider(device).stop(fresh) }
+                else if !stop && fresh.state == .stopped { try await provider(device).start(fresh, mode: mode) }
                 else { throw CLIError(L10n.text("设备状态已变化，请刷新后重试")) }
                 pending[device.id] = (stop ? .stopped : .running, Date().addingTimeInterval(120))
                 await refresh()
@@ -135,6 +149,7 @@ struct Panel: View {
     var openSettings: () -> Void
     var openLogs: (Device) -> Void
     var openInformation: (Device) -> Void
+    var revealInFinder: (Device) -> Void
     var listHeight: CGFloat = 480
     @AppStorage("appLanguage") private var language = "system"
     @State private var deletionCandidate: Device?
@@ -230,20 +245,20 @@ struct Panel: View {
             Button(L10n.text("Live logs")) { openLogs(device) }
                 .disabled(device.state == .unavailable)
             Divider()
-            Button(L10n.text("在访达中显示")) { store.showInFinder(device) }
+            Button(L10n.text("在访达中显示")) { revealInFinder(device) }
                 .disabled(device.directory == nil)
             Divider()
             Button(L10n.text("复制设备名称")) { copy(device.name) }
             if device.platform == .iOS {
                 Button(L10n.text("复制设备 UDID")) { copy(device.key) }
-            } else {
+            } else if device.supportsColdBoot {
                 Divider()
                 Button(L10n.text("冷启动")) { store.toggle(device, mode: .cold) }
                     .disabled(store.busy.contains(device.id) || device.state != .stopped)
             }
             Divider()
             Button(L10n.text("删除当前设备"), role: .destructive) { deletionCandidate = device }
-                .disabled(store.busy.contains(device.id) || (device.state != .stopped && !(device.platform == .iOS && device.state == .unavailable)))
+                .disabled(device.isOfflineSnapshot || store.busy.contains(device.id) || (device.state != .stopped && !(device.platform == .iOS && device.state == .unavailable)))
         }
     }
 
@@ -269,7 +284,7 @@ struct SettingsView: View {
         switch selected {
         case nil: return L10n.text("Language, startup and appearance. Changes apply immediately.")
         case .iOS: return L10n.text("选择 Xcode 与模拟器应用")
-        case .Android: return L10n.text("配置 Android SDK 工具与虚拟设备目录")
+        case .Android: return L10n.text("Configure Android SDK and MuMu tools")
         case .HarmonyOS: return L10n.text("连接 DevEco Studio 的模拟器工具")
         }
     }
@@ -344,6 +359,8 @@ struct SettingsView: View {
                                 pathField("ADB", text: $draft.adb, placeholder: "…/Android/sdk/platform-tools/adb", hint: L10n.text("自动优先使用与 Emulator 同一 SDK 的工具。"))
                                 Divider().padding(.horizontal, 18)
                                 pathField(L10n.text("虚拟设备目录"), text: $draft.avdHome, placeholder: "~/.android/avd", hint: L10n.text("仅在 AVD 存放位置经过修改时填写。"), directory: true)
+                                Divider().padding(.horizontal, 18)
+                                pathField("MuMu Tool", text: Binding(get: { draft.mumuTool ?? "" }, set: { draft.mumuTool = $0.isEmpty ? nil : $0 }), placeholder: "…/MuMuPlayer.app/Contents/MacOS/mumutool", hint: L10n.text("MuMu tool hint"))
                             case .HarmonyOS:
                                 pathField("Emulator", text: $draft.harmony, placeholder: "…/DevEco-Studio.app/Contents/tools/emulator/Emulator", hint: L10n.text("选择 DevEco Studio 内的 Emulator 可执行文件。"))
                                 Divider().padding(.horizontal, 18)

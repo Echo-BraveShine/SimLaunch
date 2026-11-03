@@ -31,6 +31,7 @@ import SimLaunchCore
     private lazy var logWindows = LogWindowManager(store: store)
     private lazy var informationWindows = DeviceInformationWindowManager(store: store)
     private var preferencesObserver: NSObjectProtocol?
+    private var deactivationObserver: NSObjectProtocol?
     private var menuLanguage = ""
 
     init(store: Store) {
@@ -49,6 +50,11 @@ import SimLaunchCore
         popover.contentViewController = panelHost
         configureMenus()
         applyAppearance()
+        // A context menu handing focus to Finder can leave AppKit's transient
+        // popover tracking suspended. Also dismiss when our app deactivates.
+        deactivationObserver = NotificationCenter.default.addObserver(forName: NSApplication.didResignActiveNotification, object: NSApp, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.popover.close() }
+        }
         preferencesObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
                 self?.applyAppearance()
@@ -99,7 +105,22 @@ import SimLaunchCore
     }
 
     private func updatePanel() {
-        panelHost.rootView = AnyView(Panel(openSettings: { [weak self] in self?.showSettings() }, openLogs: { [weak self] device in self?.showLogs(device) }, openInformation: { [weak self] device in self?.popover.close(); self?.informationWindows.show(device) }, listHeight: listHeight).environmentObject(store))
+        panelHost.rootView = AnyView(Panel(openSettings: { [weak self] in self?.showSettings() }, openLogs: { [weak self] device in self?.showLogs(device) }, openInformation: { [weak self] device in self?.popover.close(); self?.informationWindows.show(device) }, revealInFinder: { [weak self] device in self?.revealInFinder(device) }, listHeight: listHeight).environmentObject(store))
+    }
+
+    private func revealInFinder(_ device: Device) {
+        guard let directory = device.directory, FileManager.default.fileExists(atPath: directory) else {
+            store.showInFinder(device) // Keep validation errors visible in the panel.
+            return
+        }
+        popover.close()
+        // Let the context menu finish tracking before activating another app.
+        DispatchQueue.main.async { [weak self] in self?.store.showInFinder(device) }
+    }
+
+    deinit {
+        if let preferencesObserver { NotificationCenter.default.removeObserver(preferencesObserver) }
+        if let deactivationObserver { NotificationCenter.default.removeObserver(deactivationObserver) }
     }
 
     private func showLogs(_ device: Device) {

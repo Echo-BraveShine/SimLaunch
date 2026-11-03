@@ -263,3 +263,19 @@
 "System image" = "System image";
 "System image directory" = "System image directory";
 "System image metadata" = "System image metadata";
+
+"MuMu tool hint" = "Select mumutool in MuMuPlayer.app. Leave empty for automatic discovery. Devices are also listed when MuMu is closed; starting a device opens MuMu automatically. Uses bundled ADB unless an ADB path is set above.";
+
+"MuMu manager unavailable" = "Cannot connect to the MuMu manager. Open MuMuPlayer, then refresh.";
+
+"Invalid MuMu response" = "MuMu returned an unrecognized response. Check the installed version.";
+
+"MuMu cold boot unsupported" = "This MuMu version does not expose a verified cold boot command.";
+
+"MuMu ADB unavailable" = "Cannot connect to this MuMu device through ADB. Check its developer / ADB settings and wait for Android to finish starting.";
+
+"MuMu settings" = "MuMu settings";
+
+"Configure Android SDK and MuMu tools" = "Configure Android SDK and MuMu tools";
+
+"MuMu local catalog" = "MuMu local catalog";

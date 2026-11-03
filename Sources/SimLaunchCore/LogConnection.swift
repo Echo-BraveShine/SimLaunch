@@ -40,6 +40,10 @@ public enum LogConnection {
             try validate(device, current: devices, expectedIdentity: expectedIdentity)
             return LogCommand(path: "/usr/bin/xcrun", arguments: ["simctl", "spawn", device.key, "log", "stream", "--style", "compact", "--level", "debug"], environment: config.iosEnvironment, target: device.key)
         case .Android:
+            if device.backend == .mumu {
+                let (fresh, adb) = try await MuMuProvider(config).connectedDevice(device, expectedIdentity: expectedIdentity)
+                return LogCommand(path: adb, arguments: ["-s", fresh.serial!, "logcat", "-v", "threadtime"], target: fresh.serial!)
+            }
             let provider = AndroidProvider(config, launches: LaunchManager())
             let devices = try await provider.list()
             let fresh = try validate(device, current: devices, expectedIdentity: expectedIdentity)
