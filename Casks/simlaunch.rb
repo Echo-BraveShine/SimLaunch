@@ -1,6 +1,6 @@
 cask "simlaunch" do
-  version "0.1.7"
-  sha256 "962f35de39719606fd591818bc8196bbae3638281b8b85830e664308ae9079f4"
+  version "0.1.8"
+  sha256 "a3a07bb2ecf33722ede82539a5cc32c6e90404832561bf4f8987bc2636b68d85"
 
   url "https://github.com/Echo-BraveShine/SimLaunch/releases/download/v#{version}/SimLaunch-#{version}-universal.zip"
   name "SimLaunch"
