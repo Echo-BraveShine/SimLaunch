@@ -31,8 +31,24 @@ final class MuMuTests: XCTestCase {
             fi
         fi
         """)
+        let adb = tool.deletingLastPathComponent().appendingPathComponent("MuMuEmulator.app/Contents/MacOS/tools/adb")
+        try executable(adb, """
+        #!/bin/sh
+        echo "$*" >> '\(root.path)/adb-start-actions'
+        if [ -f '\(root.path)/adb-failure' ]; then exit 1; fi
+        """)
         var config = Configuration(); config.mumuTool = tool.path
         return (MuMuProvider(config), try XCTUnwrap(MuMuProvider.parse(text).first))
+    }
+    func testADBFailurePreventsMuMuLaunch() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let (provider, device) = try fixture(root)
+        try Data().write(to: root.appendingPathComponent("adb-failure"))
+        do { try await provider.start(device); XCTFail("Must fail when ADB cannot start") } catch {}
+        XCTAssertEqual(try String(contentsOf: root.appendingPathComponent("adb-start-actions")), "start-server\n")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("actions").path))
     }
     func testActualEnvelopeAndTransportIsolation() throws {
         let device = try XCTUnwrap(MuMuProvider.parse(output(state: "running", port: 16384)).first)
@@ -60,6 +76,7 @@ final class MuMuTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         let (provider, device) = try fixture(root)
         try await provider.start(device)
+        XCTAssertEqual(try String(contentsOf: root.appendingPathComponent("adb-start-actions")), "start-server\n")
         try await provider.delete(device)
         let running = try output(state: "running", directory: device.directory!, port: 16384)
         try running.write(to: root.appendingPathComponent("snapshot"), atomically: true, encoding: .utf8)

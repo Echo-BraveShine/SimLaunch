@@ -209,6 +209,7 @@ public struct MuMuProvider: DeviceProvider {
     }
     public func start(_ device: Device, mode: BootMode) async throws {
         guard mode == .normal else { throw CLIError(L10n.text("MuMu cold boot unsupported")) }
+        _ = try await runner.run(adb(), ["start-server"], timeout: 10)
         try await execute("open", device: device)
     }
     public func stop(_ device: Device) async throws { try await execute("close", device: device) }

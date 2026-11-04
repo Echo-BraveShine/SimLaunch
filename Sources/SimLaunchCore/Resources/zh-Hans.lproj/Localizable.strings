@@ -527,3 +527,47 @@
 "appDistributionType" = "分发类型";
 
 "The HAP does not match the installed application's bundle, version or module." = "HAP 的包名、版本或模块与设备上的应用不一致。";
+
+"Select one application and all of its required packages." = "请选择一个应用及其所需的全部安装包。";
+
+"The selected package format is not supported on this device." = "所选安装包格式不适用于此设备。";
+
+"The application contains a link outside its bundle." = "应用包包含指向包外部的链接，无法安全安装。";
+
+"The application package metadata is invalid." = "无法读取有效的安装包信息。";
+
+"This simulator application does not support this Mac's architecture." = "此模拟器应用不支持当前 Mac 的处理器架构。";
+
+"Choose an application built for iOS Simulator, not a physical device." = "请选择为 iOS Simulator 构建的应用，不能使用真机应用包。";
+
+"APK validation requires Android SDK Build Tools (AAPT2)." = "校验 APK 需要 Android SDK Build Tools 中的 AAPT2。";
+
+"Duplicate modules or split packages were selected." = "所选文件包含重复模块或拆分包。";
+
+"Select matching packages for one application, including exactly one base or entry package." = "请选择同一应用、同一版本的安装包，并包含且仅包含一个基础包或入口包。";
+
+"Installing over a system or unverified application is not supported." = "不支持覆盖安装系统应用或类型未确认的应用。";
+
+"Installing application…" = "正在安装应用…";
+
+"Verifying installation…" = "正在确认安装结果…";
+
+"Installation could not be verified. Refresh the application list." = "未能确认安装结果，请刷新应用列表。";
+
+"Installation failed or its result is uncertain. Refresh before retrying." = "安装失败或结果尚未确认，请刷新后再尝试。";
+
+"Checking installation…" = "正在检查安装包…";
+
+"Install application…" = "安装应用…";
+
+"Install on %@" = "安装到 %@";
+
+"The dropped file could not be read." = "无法读取拖入的文件。";
+
+"Installation error" = "安装出错";
+
+"Install application?" = "安装应用？";
+
+"An installed application has the same identifier. This will attempt to update it." = "设备上已存在相同包名的应用，此操作将尝试更新现有应用。";
+
+"Install" = "安装";

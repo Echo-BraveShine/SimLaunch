@@ -133,7 +133,12 @@ public struct AndroidProvider: DeviceProvider {
         return devices
     }
 
-    public func start(_ d: Device, mode: BootMode) async throws { try await launches.launch(key: d.id, path: emulator(), args: EmulatorLaunchArguments.android(name: d.key, mode: mode), environment: config.androidEnvironment) }
+    public func start(_ d: Device, mode: BootMode) async throws {
+        let emulatorPath = try emulator(), adbPath = try adb()
+        // start-server is idempotent when the ADB server is already running.
+        _ = try await runner.run(adbPath, ["start-server"], timeout: 10)
+        try await launches.launch(key: d.id, path: emulatorPath, args: EmulatorLaunchArguments.android(name: d.key, mode: mode), environment: config.androidEnvironment)
+    }
     public func delete(_ d: Device) async throws {
         try DeviceDeletion.validate(d)
         let root = URL(fileURLWithPath: try emulator()).resolvingSymlinksInPath().deletingLastPathComponent().deletingLastPathComponent()

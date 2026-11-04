@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import Combine
 import ImageIO
+import UniformTypeIdentifiers
 import SimLaunchCore
 
 @MainActor final class ApplicationManagementSession: ObservableObject {
@@ -14,6 +15,9 @@ import SimLaunchCore
     @Published private(set) var readingDetails = false
     @Published private(set) var ready: Bool
     @Published private(set) var current = false
+    @Published private(set) var installing = false
+    @Published private(set) var installationPhase = ""
+    @Published private(set) var installedID: String?
     @Published private(set) var uninstalling: String?
     @Published private(set) var error: String?
     @Published private(set) var incompleteDetails = false
@@ -44,9 +48,9 @@ import SimLaunchCore
             if !self.ready { self.generation = UUID(); self.task?.cancel(); self.iconTask?.cancel(); self.iconTask = nil; self.detailRequest?.cancel(); self.loading = false; self.readingDetails = false; self.current = false }
         }
     }
-    func canUninstall(_ app: InstalledApplication) -> Bool { ready && current && !loading && uninstalling == nil && app.canUninstall }
+    func canUninstall(_ app: InstalledApplication) -> Bool { ready && current && !loading && !installing && uninstalling == nil && app.canUninstall }
     func refresh(forceIcons: Bool = false) {
-        guard ready, uninstalling == nil, let store else { return }
+        guard ready, !installing, uninstalling == nil, let store else { return }
         task?.cancel(); iconTask?.cancel(); iconTask = nil; generation = UUID(); detailOverrides.removeAll(); metadataReady.removeAll(); iconAttempted.removeAll(); forceIconReload = forceIcons
         let generation = generation, key = cacheKey
         let service = makeService(store.config)
@@ -102,7 +106,7 @@ import SimLaunchCore
         if visible { visibleIDs.insert(id); loadVisibleIcons() } else { visibleIDs.remove(id) }
     }
     private func loadVisibleIcons() {
-        guard iconTask == nil, ready, let service = iconService, let connection = iconConnection, let snapshot else { return }
+        guard iconTask == nil, ready, !installing, let service = iconService, let connection = iconConnection, let snapshot else { return }
         let needsIcon = snapshot.applications.contains { (visibleIDs.contains($0.id) || !metadataLoading) && metadataReady.contains($0.id) && !iconAttempted.contains($0.id) && ($0.icon == nil || forceIconReload) }
         guard needsIcon else { return }
         let generation = generation, run = UUID(), force = forceIconReload
@@ -125,6 +129,29 @@ import SimLaunchCore
             self.iconTask = nil
             self.readingDetails = self.metadataLoading
             if let snapshot = self.snapshot { await ApplicationCache.shared.set(snapshot, for: self.cacheKey) }
+        }
+    }
+    func install(_ package: PreparedInstallation) {
+        guard ready, !installing, uninstalling == nil, let store, let snapshot else { return }
+        task?.cancel(); iconTask?.cancel(); iconTask = nil; detailRequest?.cancel(); generation = UUID()
+        loading = false; readingDetails = false; installing = true; installedID = nil; error = nil
+        installationPhase = "Checking installation…"
+        let service = makeService(store.config), key = cacheKey
+        mutation = Task { [weak self] in
+            guard let self else { return }
+            await ApplicationCache.shared.remove(key)
+            do {
+                let result = try await service.install(package, snapshot: snapshot) { phase in
+                    await MainActor.run { self.installationPhase = phase }
+                }
+                guard !Task.isCancelled else { return }
+                self.snapshot = result; self.installing = false; self.current = self.ready
+                self.installedID = package.application.id
+                self.refresh(forceIcons: true)
+            } catch {
+                guard !Task.isCancelled else { return }
+                self.installing = false; self.current = false; self.error = error.localizedDescription
+            }
         }
     }
     func uninstall(_ app: InstalledApplication) {
@@ -171,6 +198,11 @@ struct ApplicationManagementView: View {
     @State private var search = ""
     @State private var filter = ApplicationFilter.all
     @State private var candidate: InstalledApplication?
+    @State private var pendingInstallation: PreparedInstallation?
+    @State private var preparation: Task<Void, Never>?
+    @State private var preparing = false
+    @State private var dropTargeted = false
+    @State private var installationError: String?
     @State private var detailCandidate: InstalledApplication?
     private var apps: [InstalledApplication] {
         (session.snapshot?.applications ?? []).filter { app in
@@ -186,9 +218,9 @@ struct ApplicationManagementView: View {
                     Text(session.device.name + " · " + session.device.detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()
-                RefreshButton(isLoading: session.loading || session.readingDetails || session.uninstalling != nil,
+                RefreshButton(isLoading: session.loading || session.readingDetails || session.uninstalling != nil || session.installing,
                               isDisabled: !session.ready,
-                              loadingLabel: session.uninstalling != nil ? "Uninstalling application…" : "Refreshing…") {
+                              loadingLabel: session.installing ? session.installationPhase : session.uninstalling != nil ? "Uninstalling application…" : "Refreshing…") {
                     session.refresh(forceIcons: true)
                 }
             }.padding(14).modifier(AdaptiveGlass(radius: 14))
@@ -197,15 +229,23 @@ struct ApplicationManagementView: View {
                 TextField(L10n.text("Search application name or identifier"), text: $search).textFieldStyle(.plain)
                 if !search.isEmpty { Button { search = "" } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain).help(L10n.text("Clear search")) }
                 Divider().frame(height: 20)
+                Button { chooseInstallationFiles() } label: {
+                    HStack(spacing: 6) {
+                        if preparing { ProgressView().controlSize(.mini) }
+                        Label(L10n.text(preparing ? "Checking installation…" : "Install application…"), systemImage: "plus.app")
+                    }
+                }.disabled(preparing || !session.ready || !session.current || session.installing || session.uninstalling != nil)
                 Picker(L10n.text("Application type"), selection: $filter) { ForEach(ApplicationFilter.allCases, id: \.self) { Text(L10n.text($0.rawValue)).tag($0) } }.labelsHidden().frame(width: 170)
             }.padding(12).modifier(AdaptiveCard(radius: 12))
+            if session.installing { notice(L10n.text(session.installationPhase), symbol: "shippingbox") }
             if !session.ready {
                 notice(L10n.text("The device is offline. The list is retained; application operations are disabled."), symbol: "wifi.slash")
             } else if let error = session.error { notice(error, symbol: "exclamationmark.triangle") }
             else if !session.current && session.snapshot != nil { notice(L10n.text("Showing a cached list. Refreshing before enabling uninstall."), symbol: "clock") }
+            ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 8) {
-                    ForEach(apps) { app in applicationRow(app).onAppear { session.setVisible(app.id, visible: true) }.onDisappear { session.setVisible(app.id, visible: false) } }
+                    ForEach(apps) { app in applicationRow(app).id(app.id).onAppear { session.setVisible(app.id, visible: true) }.onDisappear { session.setVisible(app.id, visible: false) } }
                     if apps.isEmpty {
                         VStack(spacing: 10) {
                             Image(systemName: "square.grid.2x2").font(.system(size: 30)).foregroundStyle(.tertiary)
@@ -213,6 +253,10 @@ struct ApplicationManagementView: View {
                         }.frame(maxWidth: .infinity).padding(.vertical, 70)
                     }
                 }.padding(2)
+            }
+            .onChange(of: session.installedID) { id in
+                if let id { search = ""; filter = .all; DispatchQueue.main.async { proxy.scrollTo(id, anchor: .center) } }
+            }
             }
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -230,6 +274,43 @@ struct ApplicationManagementView: View {
         }.padding(18).frame(minWidth: 720, minHeight: 480)
             .background(Color(nsColor: .windowBackgroundColor)).modifier(AppAppearanceModifier())
             .environment(\.locale, Locale(identifier: language == "system" ? L10n.language : language))
+            .overlay {
+                if dropTargeted {
+                    RoundedRectangle(cornerRadius: 16).fill(Color.accentColor.opacity(0.12))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [8])))
+                        .overlay(Text(L10n.format("Install on %@", session.device.name)).font(.title3.weight(.semibold))).allowsHitTesting(false)
+                }
+            }
+            .onDrop(of: [UTType.fileURL], isTargeted: $dropTargeted) { providers in
+                guard !preparing, session.ready, session.current, !session.installing, session.uninstalling == nil else { return false }
+                preparing = true
+                preparation = Task { @MainActor in
+                    do {
+                        var urls: [URL] = []
+                        for provider in providers {
+                            let data = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
+                                provider.loadDataRepresentation(forTypeIdentifier: UTType.fileURL.identifier) { data, error in
+                                    if let data { continuation.resume(returning: data) }
+                                    else { continuation.resume(throwing: error ?? CLIError(L10n.text("The dropped file could not be read."))) }
+                                }
+                            }
+                            guard let url = URL(dataRepresentation: data, relativeTo: nil) else { throw CLIError(L10n.text("The dropped file could not be read.")) }
+                            urls.append(url)
+                        }
+                        try Task.checkCancellation()
+                        preparing = false
+                        prepareInstallation(urls)
+                    } catch { preparing = false; if !Task.isCancelled { installationError = error.localizedDescription } }
+                }
+                return true
+            }
+            .sheet(item: $pendingInstallation) { package in
+                InstallationConfirmation(package: package, session: session)
+            }
+            .alert(L10n.text("Installation error"), isPresented: Binding(get: { installationError != nil }, set: { if !$0 { installationError = nil } })) {
+                Button(L10n.text("好")) { installationError = nil }
+            } message: { Text(installationError ?? "") }
+            .onDisappear { preparation?.cancel() }
             .sheet(item: $detailCandidate) { app in ApplicationDetailView(app: app, session: session) }
             .alert(L10n.text("Uninstall application?"), isPresented: Binding(get: { candidate != nil }, set: { if !$0 { candidate = nil } }), presenting: candidate) { app in
                 Button(L10n.text("Uninstall"), role: .destructive) { session.uninstall(app) }
@@ -237,6 +318,31 @@ struct ApplicationManagementView: View {
             } message: { app in
                 Text(L10n.format("Uninstall “%@” (%@) from “%@”? A running application will be closed and its data may be deleted.", app.displayName, app.id, session.device.name))
             }
+    }
+    private func chooseInstallationFiles() {
+        let panel = NSOpenPanel()
+        let ext = session.device.platform == .iOS ? "app" : session.device.platform == .Android ? "apk" : "hap"
+        panel.allowedContentTypes = [UTType(filenameExtension: ext) ?? .data]
+        panel.treatsFilePackagesAsDirectories = false; panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = session.device.platform != .iOS
+        panel.title = L10n.text("Install application…")
+        let finish: (NSApplication.ModalResponse) -> Void = { response in if response == .OK { prepareInstallation(panel.urls) } }
+        if let window = NSApp.keyWindow { panel.beginSheetModal(for: window, completionHandler: finish) }
+        else { panel.begin(completionHandler: finish) }
+    }
+    private func prepareInstallation(_ urls: [URL]) {
+        guard !preparing, session.ready, !session.installing else { return }
+        preparing = true; installationError = nil
+        preparation = Task { @MainActor in
+            let scoped = urls.filter { $0.startAccessingSecurityScopedResource() }
+            defer { for url in scoped { url.stopAccessingSecurityScopedResource() }; preparing = false }
+            do {
+                let package = try await ApplicationInstaller.prepare(urls, platform: session.device.platform)
+                try Task.checkCancellation()
+                guard session.ready else { throw CLIError(L10n.text("App details are cached while the device is offline.")) }
+                pendingInstallation = package
+            } catch { if !Task.isCancelled { installationError = error.localizedDescription } }
+        }
     }
     private func notice(_ message: String, symbol: String) -> some View {
         Label(message, systemImage: symbol).font(.caption).foregroundStyle(.secondary).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(12).modifier(AdaptiveCard(radius: 12))
@@ -308,5 +414,6 @@ struct ApplicationIcon: View {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func updateTitle() { window?.title = L10n.text("Application management") + " — " + session.device.name }
     func reveal() { NSApp.activate(ignoringOtherApps: true); if window?.isMiniaturized == true { window?.deminiaturize(nil) }; window?.makeKeyAndOrderFront(nil); window?.makeFirstResponder(nil) }
+    func windowShouldClose(_ sender: NSWindow) -> Bool { !session.installing }
     func windowWillClose(_ notification: Notification) { session.close(); onClose() }
 }

@@ -271,3 +271,24 @@ final class LocalDiscoverySmokeTests: XCTestCase {
         print("HarmonyOS discovery: \(harmonyPath) | \(harmonyDevices.count) devices; explicit path matches")
     }
 }
+
+extension PathConfigurationTests {
+    func testAndroidStartsADBFirstAndAbortsIfItFails() async throws {
+        let fixture = try DiscoveryFixture()
+        let trace = fixture.root.appendingPathComponent("trace")
+        let failure = fixture.root.appendingPathComponent("adb-failure")
+        let adb = try fixture.executable("sdk/platform-tools/adb", body: """
+        echo "$*" >> '\(trace.path)'
+        if [ -f '\(failure.path)' ]; then exit 1; fi
+        """)
+        let emulator = try fixture.executable("sdk/emulator/emulator", body: "echo emulator >> '\(trace.path)'\n")
+        var config = Configuration(); config.adb = adb.path; config.emulator = emulator.path
+        let provider = AndroidProvider(config, launches: LaunchManager())
+        let device = Device(platform: .Android, key: "Test", name: "Test", state: .stopped)
+        try await provider.start(device)
+        XCTAssertEqual(try String(contentsOf: trace), "start-server\nemulator\n")
+        try Data().write(to: failure)
+        do { try await provider.start(device, mode: .cold); XCTFail("ADB failure must prevent emulator launch") } catch {}
+        XCTAssertEqual(try String(contentsOf: trace), "start-server\nemulator\nstart-server\n")
+    }
+}

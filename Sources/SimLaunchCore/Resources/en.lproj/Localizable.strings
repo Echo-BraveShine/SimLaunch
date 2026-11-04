@@ -527,3 +527,47 @@
 "appDistributionType" = "appDistributionType";
 
 "The HAP does not match the installed application's bundle, version or module." = "The HAP does not match the installed application's bundle, version or module.";
+
+"Select one application and all of its required packages." = "Select one application and all of its required packages.";
+
+"The selected package format is not supported on this device." = "The selected package format is not supported on this device.";
+
+"The application contains a link outside its bundle." = "The application contains a link outside its bundle.";
+
+"The application package metadata is invalid." = "The application package metadata is invalid.";
+
+"This simulator application does not support this Mac's architecture." = "This simulator application does not support this Mac's architecture.";
+
+"Choose an application built for iOS Simulator, not a physical device." = "Choose an application built for iOS Simulator, not a physical device.";
+
+"APK validation requires Android SDK Build Tools (AAPT2)." = "APK validation requires Android SDK Build Tools (AAPT2).";
+
+"Duplicate modules or split packages were selected." = "Duplicate modules or split packages were selected.";
+
+"Select matching packages for one application, including exactly one base or entry package." = "Select matching packages for one application, including exactly one base or entry package.";
+
+"Installing over a system or unverified application is not supported." = "Installing over a system or unverified application is not supported.";
+
+"Installing application…" = "Installing application…";
+
+"Verifying installation…" = "Verifying installation…";
+
+"Installation could not be verified. Refresh the application list." = "Installation could not be verified. Refresh the application list.";
+
+"Installation failed or its result is uncertain. Refresh before retrying." = "Installation failed or its result is uncertain. Refresh before retrying.";
+
+"Checking installation…" = "Checking installation…";
+
+"Install application…" = "Install application…";
+
+"Install on %@" = "Install on %@";
+
+"The dropped file could not be read." = "The dropped file could not be read.";
+
+"Installation error" = "Installation error";
+
+"Install application?" = "Install application?";
+
+"An installed application has the same identifier. This will attempt to update it." = "An installed application has the same identifier. This will attempt to update it.";
+
+"Install" = "Install";

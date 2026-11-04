@@ -191,6 +191,57 @@ public struct ApplicationService {
         guard verified.applications.contains(where: { $0.id == selected.id }) else { throw CLIError(L10n.text("This application is no longer installed. Refresh the list.")) }
         return result
     }
+    public func install(_ package: PreparedInstallation, snapshot: ApplicationSnapshot, progress: (String) async -> Void = { _ in }) async throws -> ApplicationSnapshot {
+        guard package.platform == device.platform else { throw CLIError(L10n.text("The selected package format is not supported on this device.")) }
+        let connection = try await connector(), before = try await list(connection)
+        guard before.user == snapshot.user else { throw CLIError(L10n.text("The application user changed. Refresh before continuing.")) }
+        if let existing = before.applications.first(where: { $0.id == package.application.id }), !existing.canUninstall {
+            throw CLIError(L10n.text("Installing over a system or unverified application is not supported."))
+        }
+        let verified = try await connector()
+        guard verified.path == connection.path, verified.target == connection.target else { throw CLIError(L10n.text("The device connection changed. Refresh before continuing.")) }
+        await progress("Installing application…")
+        do {
+            switch device.platform {
+            case .iOS:
+                _ = try await run(connection, ["simctl", "install", connection.target, package.files[0].path], timeout: 180)
+            case .Android:
+                guard let user = before.user, Int(user) != nil else { throw CLIError(L10n.text("Cannot confirm the application user.")) }
+                let output = try await run(connection, ["-s", connection.target, package.files.count == 1 ? "install" : "install-multiple", "-r", "-t", "--user", user] + package.files.map(\.path), timeout: 180)
+                guard output.range(of: #"(?m)^\s*Success\s*$"#, options: .regularExpression) != nil else { throw CLIError(String(output.prefix(3000))) }
+            case .HarmonyOS:
+                guard let user = before.user, Int(user) != nil else { throw CLIError(L10n.text("Cannot confirm the application user.")) }
+                let remote = "/data/local/tmp/simlaunch-install-" + UUID().uuidString
+                _ = try await run(connection, ["-t", connection.target, "shell", "mkdir", "-p", remote])
+                let result: Result<Void, Error>
+                do {
+                    var paths: [String] = []
+                    for (i, file) in package.files.enumerated() {
+                        let path = remote + "/package-\(i).hap"
+                        let transfer = try await run(connection, ["-t", connection.target, "file", "send", file.path, path], timeout: 120)
+                        guard !transfer.contains("[Fail]") else { throw CLIError(String(transfer.prefix(3000))) }; paths.append(path)
+                    }
+                    let current = try await list(connection), active = try await connector()
+                    guard current.user == user, active.path == connection.path, active.target == connection.target else { throw CLIError(L10n.text("The device connection changed. Refresh before continuing.")) }
+                    let output = try await run(connection, ["-t", connection.target, "shell", "bm", "install", "-p"] + paths + ["-r", "-u", user], timeout: 180)
+                    guard output.lowercased().contains("successfully"), !output.lowercased().contains("failed") else { throw CLIError(String(output.prefix(3000))) }
+                    result = .success(())
+                } catch { result = .failure(error) }
+                _ = await Task.detached { try? await self.run(connection, ["-t", connection.target, "shell", "rm", "-rf", remote], timeout: 10) }.value
+                try result.get()
+            }
+            await progress("Verifying installation…")
+            let latestConnection = try await connector()
+            guard latestConnection.target == connection.target, latestConnection.path == connection.path else { throw CLIError(L10n.text("The device connection changed. Refresh before continuing.")) }
+            let after = try await list(latestConnection)
+            guard after.user == before.user, let found = after.applications.first(where: { $0.id == package.application.id }) else { throw CLIError(L10n.text("Installation could not be verified. Refresh the application list.")) }
+            let metadata = try await metadata(found, snapshot: after, connection: latestConnection, loadIcon: false, bypassIconCache: true)
+            guard metadata.build == package.application.build else { throw CLIError(L10n.text("Installation could not be verified. Refresh the application list.")) }
+            return after
+        } catch {
+            throw CLIError(L10n.text("Installation failed or its result is uncertain. Refresh before retrying.") + "\n" + error.localizedDescription)
+        }
+    }
     public func uninstall(_ app: InstalledApplication, snapshot: ApplicationSnapshot) async throws -> ApplicationSnapshot {
         guard app.canUninstall else { throw CLIError(L10n.text("Only confirmed user applications can be uninstalled.")) }
         let connection = try await connector()

@@ -230,6 +230,10 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 - Android / MuMu：读取当前用户，使用同一用户范围的 `pm list packages`、`-3`、`-s` 确认应用类型；查询版本后，优先由所选设备的 PackageManager / Drawable 原生读取名称并绘制图标，支持自适应 XML、矢量和拆分 APK 资源；不用安装辅助 APK。原生读取不可用时，才使用可选的 SDK AAPT2 提取 APK 名称和位图，此回退受权限和 64 MiB 大小限制。
 - HarmonyOS：通过所选 HDC 目标读取 `bm dump -a`、可用时的 `-a -l` 名称和所选应用详情，确认 `isSystemApp`、`removable`、版本和用户范围；按 iconResource 的模块与资源编号定位 HAP，使用所选 SDK 的 restool 解析资源表，读取位图 / SVG 或合成 layered-image 前景和背景。HDC 无权读取系统 HAP 时，尝试从所选模拟器对应的本机 SDK ext4 镜像读取同一路径，并严格核对包名、版本号和构建号后才使用；整个过程不挂载或修改镜像，不提升设备权限。类型未确认的应用只在“全部应用”中显示，禁用卸载。
 
+应用管理的搜索栏提供“安装应用”入口，也可将安装包拖入列表区域。仅向运行中的设备安装：iOS 接受当前 Mac 架构的模拟器 `.app`，拒绝真机包；Android / MuMu 接受单个 `.apk` 或同一应用同一版本的一组拆分 APK（需包含基础包，校验需 SDK AAPT2）；鸿蒙接受单个 `.hap` 或同一应用同一版本的多模块 HAP（需包含入口模块）。暂不支持 `.ipa`、`.aab`、`.apks`、`.xapk`、鸿蒙 `.app` 分发包或独立 `.hsp`。
+
+选择或拖入后会复制到私有临时目录并校验，确认面板显示目标设备、用户、包名、可读取的名称与版本、文件名和大小；已有同包名应用会提示尝试更新。点击安装前可取消，开始后显示阶段进度，期间禁止同设备安装／卸载并发。安装针对选中设备与用户执行，不自动打开应用，不自动卸载旧版本；签名冲突等错误会保留具体工具输出。安装完成后重新核对应用及构建号、刷新图标并定位列表项。断线、超时等无法确认结果时，需刷新后再决定是否重试。临时安装包在确认面板关闭、任务结束且引用释放后清理；鸿蒙上传目录在安装结束或取消后尝试清理。
+
 每个应用的卸载按钮旁提供“详情”。详情以已有列表信息打开，并重新确认设备、用户和应用是否仍存在，再读取最新数据；可查看并复制名称、包名 / Bundle ID、版本号、构建号、类型、图标状态、路径、设备用户及来源提供的其他字段。设备离线时仍可查看已有详情，禁用刷新并明确标注缓存；应用已移除或用户切换时保留原信息并显示查询错误，不将其他应用的元数据套入当前应用。
 
 版本号与构建号分别读取：iOS 使用 `CFBundleShortVersionString` / `CFBundleVersion`，Android 使用 `versionName` / 完整 `versionCode`（保留高 32 位），鸿蒙使用 `versionName` / `versionCode`。缺失字段显示“未提供”，不将构建号充当版本号。iOS 优先读取本地化的 InfoPlist.strings 名称和声明的独立图标，再尝试通用图标；可解码图标统一转为有尺寸上限的 PNG。Android 缓存核对构建号、更新时间与安装路径，避免同版本名称更新后沿用旧名称和图标；APK 元数据还会核对包名。系统应用也会尝试原生图标读取；打开详情时还可执行 APK 资源回退。
@@ -248,6 +252,12 @@ SIMLAUNCH_JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home
 Android 辅助程序只在 shell 权限下绘制图标，不加载应用代码、不启动 Activity；临时 DEX 使用随机文件名，查询结束或取消后清理。iOS 辅助程序在指定模拟器内执行，包含运行时检测的 UIKit 兼容适配，后续 Xcode / iOS 更新可能需要调整。输出统一归一化为有尺寸上限的 PNG；SVG 外部资源和活动内容会被拒绝。
 
 列表先读取基本信息，优先为可见行解码图标；Android / MuMu 每批最多 8 个应用共享一次辅助程序上传和运行，随后继续补齐其余应用的名称与图标，保留按名称搜索的能力。三端在可见项之后继续补齐剩余图标，避免依赖界面的行出现回调而漏掉请求；Android 批量读取失败时恢复逐应用原生读取及 APK 资源回退。图标缓存保存在 `~/Library/Caches/dev.ekko.simlaunch/ApplicationIcons-v2`，内存上限约 8 MiB，磁盘定期清理至约 50 MiB / 512 项，最长保留 30 天。缓存不只以包名区分：还核对设备、语言、构建号和资源修订信息；Android 包含用户、更新时间和安装路径，鸿蒙包含更新时间与 HAP / 资源引用，iOS 包含应用路径与本地图标资源修改时间及大小。应用更新会使用新缓存键；列表与详情的主动刷新会绕过图标缓存。应用运行时切换图标但安装信息未改变时，可主动刷新获取新图标。
+
+可选 MuMu 安装集成测试（需已有运行中的 MuMu，安装后立即卸载一次性测试包；仅接受包名以 `dev.ekko.simlaunch.installtest` 开头的测试 APK）：
+
+```sh
+SIMLAUNCH_TEST_INSTALL_APK=/absolute/path/to/disposable-test.apk swift test --filter ApplicationInstallationLiveTests
+```
 
 可选三端真实图标测试（需要三端设备已运行，只读，不卸载应用）：
 
