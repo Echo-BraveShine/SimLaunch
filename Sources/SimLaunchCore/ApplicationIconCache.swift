@@ -3,7 +3,7 @@ import CryptoKit
 
 /// Presentation cache only. Keys include the device, user and verified package revision.
 actor ApplicationIconCache {
-    struct Record: Codable, Sendable { let png: Data; let label: String?; let created: Date; var localHAP: String? = nil }
+    struct Record: Codable, Sendable { let png: Data; let label: String?; let created: Date }
     static let shared = ApplicationIconCache()
     private let directory: URL
     private let diskLimit: Int
@@ -30,10 +30,10 @@ actor ApplicationIconCache {
               IconRasterizer.image(value.png) != nil else { values.removeValue(forKey: key); return nil }
         remember(value, key: key); return value
     }
-    func set(_ icon: Data, key: String, label: String? = nil, created: Date = Date(), localHAP: String? = nil) {
+    func set(_ icon: Data, key: String, label: String? = nil, created: Date = Date()) {
         guard icon.count <= 262_144 else { return }
         guard values[key].map({ $0.created <= created }) ?? true else { return }
-        let value = Record(png: icon, label: label.map { String($0.prefix(1024)) }, created: created, localHAP: localHAP)
+        let value = Record(png: icon, label: label.map { String($0.prefix(1024)) }, created: created)
         remember(value, key: key)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])

@@ -79,6 +79,16 @@ final class ApplicationIconTests: XCTestCase {
         let result = await service.icons([app], snapshot: .init(applications: [app], user: "0"), connection: connection, force: true)
         XCTAssertNotNil(result.first?.icon); XCTAssertEqual(result.first?.name, "Recovered")
     }
+    func testHarmonyHAPRejectsWrongBundleVersionAndModule() throws {
+        var app = InstalledApplication(id: "dev.test.app", version: "1.0"); app.build = "1"
+        func module(_ id: String, _ build: Int, _ name: String) throws -> Data {
+            try JSONSerialization.data(withJSONObject: ["app": ["bundleName": id, "versionName": "1.0", "versionCode": build], "module": ["name": name]])
+        }
+        XCTAssertTrue(ApplicationService.matchingHarmonyModule(try module(app.id, 1, "entry"), app: app, module: "entry"))
+        XCTAssertFalse(ApplicationService.matchingHarmonyModule(try module("other.app", 1, "entry"), app: app, module: "entry"))
+        XCTAssertFalse(ApplicationService.matchingHarmonyModule(try module(app.id, 2, "entry"), app: app, module: "entry"))
+        XCTAssertFalse(ApplicationService.matchingHarmonyModule(try module(app.id, 1, "other"), app: app, module: "entry"))
+    }
     func testHarmonyResourceIDsNamesModuleAndTraversal() throws {
         let json = #"{"bundleName":"com.test.app","moduleName":"phone","resource":[{"id":100,"name":"icon","type":"media","entryValues":[{"value":"phone/resources/base/media/icon.json"}]},{"id":101,"name":"bad","type":"media","entryValues":[{"value":"../secret.png"}]}]}"#
         let table = try HarmonyIconResourceTable(json, bundle: "com.test.app", module: "phone")

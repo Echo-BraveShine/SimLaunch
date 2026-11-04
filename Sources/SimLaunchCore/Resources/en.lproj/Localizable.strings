@@ -525,3 +525,5 @@
 "appProvisionType" = "appProvisionType";
 
 "appDistributionType" = "appDistributionType";
+
+"The HAP does not match the installed application's bundle, version or module." = "The HAP does not match the installed application's bundle, version or module.";

@@ -525,3 +525,5 @@
 "appProvisionType" = "签名配置类型";
 
 "appDistributionType" = "分发类型";
+
+"The HAP does not match the installed application's bundle, version or module." = "HAP 的包名、版本或模块与设备上的应用不一致。";

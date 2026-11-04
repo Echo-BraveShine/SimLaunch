@@ -89,7 +89,7 @@ extension ApplicationService {
             cleanVersion(definition["versionName"]) == app.version && info["name"] as? String == module
     }
     private static func cleanVersion(_ value: Any?) -> String? { ApplicationParsers.clean(value) }
-    private func decodeHarmonyHAP(_ original: InstalledApplication, archive: URL, source: String, local: Bool = false) async throws -> InstalledApplication {
+    private func decodeHarmonyHAP(_ original: InstalledApplication, archive: URL, source: String) async throws -> InstalledApplication {
         var app = original
         guard let module = app.extra?["iconModule"], let reference = app.extra?["iconResourceId"] ?? app.extra?["iconPath"] else { throw CLIError(L10n.text("The HAP icon location is unavailable.")) }
         let started = Date(), moduleData = try await hapEntry("module.json", archive: archive)
@@ -99,14 +99,8 @@ extension ApplicationService {
         app.icon = try await resolveHarmonyIcon(reference, table: table, archive: archive)
         app.extra?["Icon source"] = source; app.extra?.removeValue(forKey: "Icon diagnostic")
         app.notes?.removeAll { $0 == "The device does not allow reading this application's HAP. Its icon cannot be extracted without access to the matching installation package." || $0 == "The HAP is protected, unavailable, mismatched, or its icon format is unsupported." }
-        if let icon = app.icon, let key = harmonyIconKey(app) { await ApplicationIconCache.shared.set(icon, key: key, created: started, localHAP: local ? archive.path : nil) }
+        if let icon = app.icon, let key = harmonyIconKey(app) { await ApplicationIconCache.shared.set(icon, key: key, created: started) }
         return app
-    }
-    /// Read only selected archive entries, including for large local HAPs; never install the package.
-    public func importHarmonyIcon(_ app: InstalledApplication, file: URL) async throws -> InstalledApplication {
-        guard device.platform == .HarmonyOS, file.isFileURL, file.pathExtension.lowercased() == "hap",
-              let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > 0, size <= 2_147_483_648 else { throw CLIError(L10n.text("Select a HAP installation package smaller than 2 GiB.")) }
-        return try await decodeHarmonyHAP(app, archive: file, source: "Matching local HAP (read-only)", local: true)
     }
     func harmonyIcon(_ original: InstalledApplication, connection c: DeviceToolConnection, useCache: Bool = true) async -> InstalledApplication {
         var app = original
@@ -115,7 +109,6 @@ extension ApplicationService {
         let key = harmonyIconKey(app)!
         let cached = await ApplicationIconCache.shared.record(key)
         if useCache, let cached { app.icon = cached.png; app.extra?["Icon source"] = "Verified HAP icon cache"; return app }
-        if let path = cached?.localHAP, let loaded = try? await importHarmonyIcon(app, file: URL(fileURLWithPath: path)) { return loaded }
         let runner = ProcessRunner(), directory = FileManager.default.temporaryDirectory.appendingPathComponent("SimLaunch-HAP-" + UUID().uuidString)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

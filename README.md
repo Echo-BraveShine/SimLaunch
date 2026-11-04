@@ -234,6 +234,7 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 
 版本号与构建号分别读取：iOS 使用 `CFBundleShortVersionString` / `CFBundleVersion`，Android 使用 `versionName` / 完整 `versionCode`（保留高 32 位），鸿蒙使用 `versionName` / `versionCode`。缺失字段显示“未提供”，不将构建号充当版本号。iOS 优先读取本地化的 InfoPlist.strings 名称和声明的独立图标，再尝试通用图标；可解码图标统一转为有尺寸上限的 PNG。Android 缓存核对构建号、更新时间与安装路径，避免同版本名称更新后沿用旧名称和图标；APK 元数据还会核对包名。系统应用也会尝试原生图标读取；打开详情时还可执行 APK 资源回退。
 
+
 图标仍受工具、系统版本和资源访问权限约束：iOS 运行时接口不可用、Android 原生读取被拒绝、鸿蒙 HAP 无法读取且本机没有匹配版本镜像时会保留占位图，并在详情给出原因。不会用其他版本的 SDK 图标或无关图片替代。鸿蒙目前支持普通 ext4 SDK 镜像、可读 HAP 中的位图 / SVG 和 layered-image；不支持加密 HAP、加密 / 压缩 / 非 ext4 镜像或需要尚未实现资源解析方式的图标。仅从资源引用不能保证每个受保护应用都可读取。
 
 图标导出程序源码位于 `Tools/IconHelpers/`，预编译的 Android DEX 与 arm64 / x86_64 iOS Simulator 可执行文件作为 SwiftPM 资源打包。常规构建不额外下载依赖；修改辅助程序后，使用完整 Xcode、Android SDK Build Tools 和 JDK 重新生成：
