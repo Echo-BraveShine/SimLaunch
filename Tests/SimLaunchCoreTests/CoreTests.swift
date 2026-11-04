@@ -185,6 +185,18 @@ final class LocalizationTests: XCTestCase {
             for language in ["en", "zh-Hans"] { XCTAssertNotEqual(L10n.text(key, language: language), key) }
         }
     }
+    func testLowercaseSwiftPMLocalizationDirectory() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("zh-hans.lproj")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let expected = ["Verified icon cache": "已核验的图标缓存"]
+        for format in [PropertyListSerialization.PropertyListFormat.xml, .binary] {
+            let data = try PropertyListSerialization.data(fromPropertyList: expected, format: format, options: 0)
+            try data.write(to: directory.appendingPathComponent("Localizable.strings"))
+            XCTAssertEqual(L10n.loadTable(language: "zh-Hans", resourceDirectory: root), expected)
+        }
+    }
     func testDeletionMessageRetainsDeviceIdentityAcrossLanguages() {
         let key = "Permanently delete %@ device “%@” and all its apps and data? This cannot be undone."
         for language in ["en", "zh-Hans"] {
