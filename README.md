@@ -4,6 +4,8 @@
 
 <h1 align="center">SimLaunch</h1>
 
+<p align="center"><strong>简体中文</strong> · <a href="README.en.md">English</a></p>
+
 <p align="center"><strong>三个平台，一个菜单栏入口。</strong></p>
 <p align="center">在 macOS 上管理 iOS、Android、HarmonyOS 和 MuMu 模拟器。<br>启动设备、安装应用、查看日志，让日常开发少一点切换。</p>
 

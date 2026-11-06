@@ -24,6 +24,13 @@ public struct ApplicationSnapshot: Codable, Sendable {
     public var user: String?
     public var date = Date()
     public init(applications: [InstalledApplication], user: String? = nil) { self.applications = applications; self.user = user }
+    public mutating func reusePresentations(from previous: ApplicationSnapshot?) {
+        guard let previous, previous.user == user else { return }
+        let cached = Dictionary(previous.applications.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
+        for i in applications.indices {
+            if let old = cached[applications[i].id] { applications[i] = applications[i].reusingPresentation(old) }
+        }
+    }
 }
 public enum ApplicationParsers {
     static func clean(_ value: Any?) -> String? {

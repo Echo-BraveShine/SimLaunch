@@ -32,7 +32,7 @@ actor ApplicationIconCache {
     }
     func set(_ icon: Data, key: String, label: String? = nil, created: Date = Date()) {
         guard icon.count <= 262_144 else { return }
-        guard values[key].map({ $0.created <= created }) ?? true else { return }
+        guard record(key).map({ $0.created <= created }) ?? true else { return }
         let value = Record(png: icon, label: label.map { String($0.prefix(1024)) }, created: created)
         remember(value, key: key)
         do {

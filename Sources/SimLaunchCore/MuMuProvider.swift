@@ -135,12 +135,17 @@ public struct MuMuProvider: DeviceProvider {
         var devices: [Device]
         do { devices = try Self.parse(await rawList()) }
         catch is MuMuServiceUnavailable { return try await offlineDevices() }
-        // Only query already connected targets during background refresh; do not connect or boot guests.
+        // Live instances can publish an ADB port before Android accepts connections.
+        // Retry missing connections on refresh without launching a guest or using disk-cached ports.
         if devices.contains(where: { $0.state == .running }), let adb = try? await adb(),
            let output = try? await runner.run(adb, ["devices"], timeout: 5) {
             let connected = Self.connectedTargets(output)
             for i in devices.indices where devices[i].state == .running {
-                guard let serial = devices[i].serial, connected.contains(serial),
+                if let serial = devices[i].serial, !connected.contains(serial) {
+                    guard let (fresh, _) = try? await connectedDevice(devices[i]) else { continue }
+                    devices[i].serial = fresh.serial
+                }
+                guard let serial = devices[i].serial,
                       let properties = try? await runner.run(adb, ["-s", serial, "shell", "getprop"], timeout: 3) else { continue }
                 let version = AndroidSystemInfo.fromProperties(AndroidSystemInfo.properties(properties)).detail
                 if !version.isEmpty { devices[i].detail = "MuMu · " + version }
@@ -209,8 +214,16 @@ public struct MuMuProvider: DeviceProvider {
     }
     public func start(_ device: Device, mode: BootMode) async throws {
         guard mode == .normal else { throw CLIError(L10n.text("MuMu cold boot unsupported")) }
-        _ = try await runner.run(adb(), ["start-server"], timeout: 10)
+        let adbPath = try await adb()
+        _ = try await runner.run(adbPath, ["start-server"], timeout: 10)
         try await execute("open", device: device)
+        // MuMu may initialize or replace its ADB service while opening the manager.
+        _ = try await runner.run(adbPath, ["start-server"], timeout: 10)
+        if let fresh = try? Self.parse(await rawList()).first(where: { $0.id == device.id }),
+           fresh.state == .running, LogConnection.fingerprint(fresh) == LogConnection.fingerprint(device) {
+            _ = try? await connectedDevice(fresh)
+        }
+        // If Android is still booting, list() will retry the live port on the next refresh.
     }
     public func stop(_ device: Device) async throws { try await execute("close", device: device) }
     public func delete(_ device: Device) async throws { try await execute("delete", device: device) }

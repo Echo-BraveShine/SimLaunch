@@ -4,6 +4,19 @@ import ImageIO
 @testable import SimLaunchCore
 
 final class ApplicationMetadataTests: XCTestCase {
+    func testSwitchingDeviceUserDoesNotReuseOtherUsersPresentation() {
+        var old = InstalledApplication(id: "dev.test.shared", name: "Old user", version: "1")
+        old.build = "1"; old.revision = "same-build"; old.icon = Data([1, 2, 3])
+        let cached = ApplicationSnapshot(applications: [old], user: "0")
+        let basic = InstalledApplication(id: old.id)
+        var switched = ApplicationSnapshot(applications: [basic], user: "10")
+        switched.reusePresentations(from: cached)
+        XCTAssertNil(switched.applications[0].icon)
+        XCTAssertNil(switched.applications[0].name)
+        var sameUser = ApplicationSnapshot(applications: [basic], user: "0")
+        sameUser.reusePresentations(from: cached)
+        XCTAssertEqual(sameUser.applications[0].icon, old.icon)
+    }
     func testIOSSeparatesVersionAndBuildAndRejectsContradictingBundleID() throws {
         let apps = try ApplicationParsers.ios(#"{ "com.test.app" = { ApplicationType = User; CFBundleIdentifier = "com.test.app"; CFBundleVersion = "100"; }; }"#)
         XCTAssertNil(apps[0].version, "A build number must never be labeled as the version name")

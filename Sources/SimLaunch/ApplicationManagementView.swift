@@ -63,12 +63,7 @@ import SimLaunchCore
                 var fresh = try await service.list()
                 try Task.checkCancellation()
                 guard self.generation == generation else { return }
-                let previous = Dictionary((self.snapshot?.applications ?? []).map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
-                for i in fresh.applications.indices {
-                    if let cached = previous[fresh.applications[i].id] {
-                        fresh.applications[i] = fresh.applications[i].reusingPresentation(cached)
-                    }
-                }
+                fresh.reusePresentations(from: self.snapshot)
                 if forceIcons { for i in fresh.applications.indices { fresh.applications[i].icon = nil } }
                 self.snapshot = fresh; self.current = true; self.loading = false; self.readingDetails = true
                 await ApplicationCache.shared.set(fresh, for: key)

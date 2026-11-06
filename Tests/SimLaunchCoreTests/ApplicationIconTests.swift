@@ -47,6 +47,19 @@ final class ApplicationIconTests: XCTestCase {
         let expired = await second.get("expired")
         XCTAssertNil(expired)
     }
+    func testLateIconRequestCannotOverwriteNewerDiskCache() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let old = try image(red: 0), updated = try image(red: 1), now = Date()
+        let first = ApplicationIconCache(directory: directory)
+        await first.set(updated, key: "same-revision", label: "New", created: now)
+        // Simulate a disk-only record, as after memory eviction or reopening the cache.
+        let reopened = ApplicationIconCache(directory: directory)
+        await reopened.set(old, key: "same-revision", label: "Old", created: now.addingTimeInterval(-1))
+        let restored = await reopened.record("same-revision")
+        XCTAssertEqual(restored?.png, updated)
+        XCTAssertEqual(restored?.label, "New")
+    }
     func testIOSIconResourceChangeInvalidatesSameBuild() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

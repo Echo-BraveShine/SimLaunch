@@ -50,6 +50,55 @@ final class MuMuTests: XCTestCase {
         XCTAssertEqual(try String(contentsOf: root.appendingPathComponent("adb-start-actions")), "start-server\n")
         XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("actions").path))
     }
+    func testStartConnectsLiveADBPortWithoutOpeningLogs() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let (provider, device) = try fixture(root)
+        let running = try output(state: "running", directory: device.directory!, port: 16384)
+        try running.write(to: root.appendingPathComponent("running"), atomically: true, encoding: .utf8)
+        let tool = try await provider.path()
+        var script = try String(contentsOfFile: tool)
+        script = script.replacingOccurrences(of: "echo '{\"errcode\":0,\"message\":\"\",\"return\":{}}'", with: "cp '\(root.path)/running' '\(root.path)/snapshot'\necho '{\"errcode\":0,\"return\":{}}'")
+        try executable(URL(fileURLWithPath: tool), script)
+        let adb = try await provider.adb()
+        try executable(URL(fileURLWithPath: adb), """
+        #!/bin/sh
+        echo "$*" >> '\(root.path)/adb-start-actions'
+        if [ "$1" = devices ]; then printf 'List of devices attached\\n127.0.0.1:16384\\tdevice\\n'; fi
+        """)
+        try await provider.start(device)
+        let actions = try String(contentsOf: root.appendingPathComponent("adb-start-actions"))
+        XCTAssertTrue(actions.contains("start-server\nstart-server\nconnect 127.0.0.1:16384\ndevices"))
+        XCTAssertFalse(actions.contains("logcat"))
+    }
+    func testRefreshRetriesMuMuADBConnectionAfterGuestBoots() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let (provider, _) = try fixture(root, state: "running")
+        let adb = try await provider.adb()
+        try executable(URL(fileURLWithPath: adb), """
+        #!/bin/sh
+        echo "$*" >> '\(root.path)/connection-actions'
+        case "$1" in
+          connect)
+            if [ -f '\(root.path)/tried' ]; then touch '\(root.path)/connected'; else touch '\(root.path)/tried'; fi ;;
+          devices)
+            printf 'List of devices attached\\n'
+            if [ -f '\(root.path)/connected' ]; then printf '127.0.0.1:16384\\tdevice\\n'; fi ;;
+          -s) printf '[ro.build.version.release]: [12]\\n[ro.build.version.sdk]: [32]\\n[ro.product.cpu.abi]: [arm64-v8a]\\n' ;;
+        esac
+        """)
+        let first = try await provider.list()
+        XCTAssertEqual(first.first?.detail, "MuMu · Android")
+        let second = try await provider.list()
+        XCTAssertEqual(second.first?.detail, "MuMu · Android 12 · API 32 · arm64")
+        let actions = try String(contentsOf: root.appendingPathComponent("connection-actions"))
+        XCTAssertEqual(actions.components(separatedBy: "connect 127.0.0.1:16384").count - 1, 2)
+        XCTAssertFalse(actions.contains("kill-server"))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("actions").path))
+    }
     func testActualEnvelopeAndTransportIsolation() throws {
         let device = try XCTUnwrap(MuMuProvider.parse(output(state: "running", port: 16384)).first)
         XCTAssertEqual(device.id, "Android:MuMu:0")
@@ -76,7 +125,7 @@ final class MuMuTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         let (provider, device) = try fixture(root)
         try await provider.start(device)
-        XCTAssertEqual(try String(contentsOf: root.appendingPathComponent("adb-start-actions")), "start-server\n")
+        XCTAssertEqual(try String(contentsOf: root.appendingPathComponent("adb-start-actions")), "start-server\nstart-server\n")
         try await provider.delete(device)
         let running = try output(state: "running", directory: device.directory!, port: 16384)
         try running.write(to: root.appendingPathComponent("snapshot"), atomically: true, encoding: .utf8)
