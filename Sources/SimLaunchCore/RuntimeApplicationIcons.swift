@@ -109,7 +109,7 @@ extension ApplicationService {
                     if self.device.platform == .iOS {
                         return (index, await self.iosRuntimeIcon(Self.iosMetadata(app), connection: c, useCache: !force))
                     }
-                    return (index, await self.harmonyIcon(app, connection: c, useCache: !force))
+                    return (index, await self.harmonyIcon(app, user: snapshot.user, connection: c, useCache: !force))
                 }
             }
             var result = apps

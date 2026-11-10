@@ -138,7 +138,7 @@ public struct ApplicationService {
         try Task.checkCancellation()
         return try await execute(c.path, args, c.environment, timeout)
     }
-    private func scope(_ c: DeviceToolConnection) async throws -> String {
+    func scope(_ c: DeviceToolConnection) async throws -> String {
         let value = try await run(c, ["-s", c.target, "shell", "am", "get-current-user"]).trimmingCharacters(in: .whitespacesAndNewlines)
         guard let number = Int(value), number >= 0 else { throw CLIError(L10n.text("Cannot confirm the application user.")) }
         return String(number)
@@ -177,12 +177,27 @@ public struct ApplicationService {
             if let user = snapshot.user { args += ["-u", user] }
             var result = try ApplicationParsers.harmonyDetails(await run(connection, args), app: app)
             if app.build != nil && (result.build != app.build || result.extra?["updateTime"] != app.extra?["updateTime"]) { result.icon = nil }
-            if loadIcon { return await harmonyIcon(result, connection: connection, useCache: !bypassIconCache) }
+            if loadIcon { return await harmonyIcon(result, user: snapshot.user, connection: connection, useCache: !bypassIconCache) }
             if !bypassIconCache, let key = harmonyIconKey(result), let cached = await ApplicationIconCache.shared.get(key) { result.icon = cached }
             return result
         }
     }
     public func metadataConnection() async throws -> DeviceToolConnection { try await connector() }
+    public func dataContainer(for app: InstalledApplication) async throws -> URL {
+        guard device.platform == .iOS, ApplicationParsers.validIdentifier(app.id) else {
+            throw CLIError(L10n.text("The application sandbox is unavailable."))
+        }
+        let connection = try await connector()
+        let output = try await run(connection, ["simctl", "get_app_container", connection.target, app.id, "data"], timeout: 10)
+        try Task.checkCancellation()
+        let path = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        var isDirectory: ObjCBool = false
+        guard path.hasPrefix("/"), !path.contains(where: \.isNewline),
+              FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            throw CLIError(L10n.text("The application's data container could not be found."))
+        }
+        return URL(fileURLWithPath: path, isDirectory: true)
+    }
     public func details(_ app: InstalledApplication, snapshot: ApplicationSnapshot, forceIcon: Bool = false) async throws -> InstalledApplication {
         let connection = try await connector()
         let fresh = try await list(connection)

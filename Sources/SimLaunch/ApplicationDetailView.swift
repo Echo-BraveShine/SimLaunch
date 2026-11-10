@@ -8,6 +8,8 @@ struct ApplicationDetailView: View {
     @AppStorage("appLanguage") private var language = "system"
     @State private var information: InstalledApplication
     @State private var loading = false
+    @State private var openingSandbox = false
+    @State private var browsingSandbox = false
     @State private var error: String?
     @State private var updated: Date?
     @State private var request: Task<Void, Never>?
@@ -35,32 +37,44 @@ struct ApplicationDetailView: View {
                 ApplicationIcon(data: information.icon)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(information.displayName).font(.title3.weight(.semibold)).lineLimit(1)
-                    Text(L10n.text("App details") + " · " + session.device.name).font(.caption).foregroundStyle(.secondary)
+                    Text(L10n.text(browsingSandbox ? "App sandbox" : "App details") + " · " + session.device.name).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                RefreshButton(isLoading: loading, isDisabled: !session.ready || session.uninstalling != nil) { refresh(forceIcon: true) }
+                if session.device.platform == .iOS {
+                    Button(action: openSandbox) {
+                        ZStack {
+                            Label(L10n.text("Open Sandbox in Finder"), systemImage: "folder")
+                                .opacity(openingSandbox ? 0 : 1)
+                            if openingSandbox { ProgressView().controlSize(.mini).accessibilityHidden(true) }
+                        }
+                    }
+                    .help(L10n.text("Open Sandbox in Finder"))
+                    .accessibilityLabel(L10n.text("Open Sandbox in Finder"))
+                    .disabled(openingSandbox || loading || !session.ready || session.installing || session.uninstalling != nil)
+                } else if browsingSandbox {
+                    Button { browsingSandbox = false } label: { Label(L10n.text("App details"), systemImage: "chevron.left") }
+                } else {
+                    Button { browsingSandbox = true } label: { Label(L10n.text("Browse Sandbox"), systemImage: "folder") }
+                        .disabled(!session.ready || session.snapshot == nil || session.installing || session.uninstalling != nil)
+                }
+                if !browsingSandbox {
+                    RefreshButton(isLoading: loading, isDisabled: openingSandbox || !session.ready || session.uninstalling != nil) { refresh(forceIcon: true) }
+                }
             }.padding(14).modifier(AdaptiveGlass(radius: 14))
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    if !session.ready || error != nil || updated == nil {
-                        Label(!session.ready ? L10n.text("App details are cached while the device is offline.") : error ?? L10n.text("Showing saved app details while checking current metadata."), systemImage: "info.circle")
-                            .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(12).modifier(AdaptiveCard(radius: 12))
-                    }
-                    fieldCard(fields)
-                    if let extra = information.extra, !extra.isEmpty { fieldCard(extra.keys.sorted().map { ($0, localizedValue(extra[$0]!, field: $0)) }) }
-                    if let notes = information.notes, !notes.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(L10n.text("Metadata availability")).font(.headline)
-                            ForEach(notes, id: \.self) { Text(L10n.text($0)).font(.caption).foregroundStyle(.secondary).textSelection(.enabled) }
-                        }.frame(maxWidth: .infinity, alignment: .leading).padding(14).modifier(AdaptiveCard(radius: 12))
-                    }
-                }.padding(2)
+            if browsingSandbox {
+                ApplicationSandboxView(app: information, session: session)
+            } else {
+                detailContent
             }
             HStack {
-                if let updated { Text(L10n.text("Last refreshed") + " " + updated.formatted(date: .omitted, time: .standard)).font(.caption).foregroundStyle(.secondary) }
+                if !browsingSandbox, let updated {
+                    Text(L10n.text("Last refreshed") + " " + updated.formatted(.dateTime.hour().minute().second().locale(Locale(identifier: L10n.language))))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Spacer()
-                Button { copy((fields + (information.extra ?? [:]).keys.sorted().map { ($0, localizedValue(information.extra![$0]!, field: $0)) }).map { L10n.text($0.0) + ": " + $0.1 }.joined(separator: "\n") + "\n" + (information.notes ?? []).map { L10n.text($0) }.joined(separator: "\n")) } label: { Label(L10n.text("Copy all information"), systemImage: "doc.on.doc") }
+                if !browsingSandbox {
+                    Button { copy((fields + (information.extra ?? [:]).keys.sorted().map { ($0, localizedValue(information.extra![$0]!, field: $0)) }).map { L10n.text($0.0) + ": " + $0.1 }.joined(separator: "\n") + "\n" + (information.notes ?? []).map { L10n.text($0) }.joined(separator: "\n")) } label: { Label(L10n.text("Copy all information"), systemImage: "doc.on.doc") }
+                }
                 Button(L10n.text("Done")) { dismiss() }.keyboardShortcut(.defaultAction)
             }
         }.padding(18).frame(width: 640, height: 570)
@@ -68,10 +82,48 @@ struct ApplicationDetailView: View {
             .environment(\.locale, Locale(identifier: language == "system" ? L10n.language : language))
             .onAppear { refresh() }
             .onDisappear { request?.cancel() }
-            .onChange(of: session.ready) { ready in if !ready { request?.cancel(); loading = false } }
+            .onChange(of: session.ready) { ready in
+                if !ready {
+                    request?.cancel()
+                    loading = false
+                    openingSandbox = false
+                }
+            }
+    }
+    private var detailContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                if !session.ready || error != nil || updated == nil {
+                    Label(!session.ready ? L10n.text("App details are cached while the device is offline.") : error ?? L10n.text("Showing saved app details while checking current metadata."), systemImage: "info.circle")
+                        .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(12).modifier(AdaptiveCard(radius: 12))
+                }
+                fieldCard(fields)
+                if let extra = information.extra, !extra.isEmpty { fieldCard(extra.keys.sorted().map { ($0, localizedValue(extra[$0]!, field: $0)) }) }
+                if let notes = information.notes, !notes.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L10n.text("Metadata availability")).font(.headline)
+                        ForEach(notes, id: \.self) { Text(L10n.text($0)).font(.caption).foregroundStyle(.secondary).textSelection(.enabled) }
+                    }.frame(maxWidth: .infinity, alignment: .leading).padding(14).modifier(AdaptiveCard(radius: 12))
+                }
+            }.padding(2)
+        }
     }
     private func localizedValue(_ value: String, field: String) -> String {
-        ["Metadata source", "Icon source", "Icon diagnostic"].contains(field) ? L10n.text(value) : value
+        switch field {
+        case "Metadata source", "Icon source":
+            return L10n.text(value)
+        case "Icon diagnostic":
+            return value.components(separatedBy: "\n").map { L10n.text($0) }.joined(separator: "\n")
+        case "appProvisionType":
+            switch value {
+            case "debug": return L10n.text("Debug signing")
+            case "release": return L10n.text("Release signing")
+            default: return value
+            }
+        default:
+            return value
+        }
     }
     private func fieldCard(_ values: [(String, String)]) -> some View {
         VStack(spacing: 12) {
@@ -96,6 +148,22 @@ struct ApplicationDetailView: View {
             } catch {
                 guard !Task.isCancelled else { return }
                 self.error = error.localizedDescription; loading = false
+            }
+        }
+    }
+    private func openSandbox() {
+        openingSandbox = true
+        error = nil
+        request = Task { @MainActor in
+            defer { if !Task.isCancelled { openingSandbox = false } }
+            do {
+                let url = try await session.dataContainer(for: information)
+                try Task.checkCancellation()
+                if !NSWorkspace.shared.open(url) {
+                    throw CLIError(L10n.text("Finder could not open the application sandbox."))
+                }
+            } catch {
+                if !Task.isCancelled { self.error = error.localizedDescription }
             }
         }
     }

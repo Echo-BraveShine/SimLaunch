@@ -121,10 +121,19 @@ final class ApplicationIconTests: XCTestCase {
     @MainActor func testSVGAndExternalResources() throws {
         let svg = Data(##"<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" fill="#ff0000"/></svg>"##.utf8)
         XCTAssertNotNil(IconRasterizer.normalized(svg))
+        let standardDeclaration = """
+        <?xml version="1.0" standalone="no"?>
+        <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
+          "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+
+        """
+        XCTAssertNotNil(IconRasterizer.normalized(Data(standardDeclaration.utf8) + svg))
+        let customDeclaration = #"<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>"#
+        XCTAssertNil(IconRasterizer.normalized(Data(customDeclaration.utf8) + svg))
         let external = Data(##"<svg xmlns="http://www.w3.org/2000/svg"><image href="https://example.com/icon.png"/></svg>"##.utf8)
         XCTAssertNil(IconRasterizer.normalized(external))
     }
-    private func ext4Fixture() -> Data {
+    private func ext4Fixture(fileSize: UInt32 = 4) -> Data {
         var bytes = Data(count: 65536)
         func u16(_ offset: Int, _ value: UInt16) { bytes[offset] = UInt8(value & 255); bytes[offset + 1] = UInt8(value >> 8) }
         func u32(_ offset: Int, _ value: UInt32) { u16(offset, UInt16(value & 65535)); u16(offset + 2, UInt16(value >> 16)) }
@@ -135,7 +144,7 @@ final class ApplicationIconTests: XCTestCase {
             u16(p, mode); u32(p + 4, size); u32(p + 32, 0x80000)
             u16(p + 40, 0xF30A); u16(p + 42, 1); u16(p + 44, 4); u16(p + 56, 1); u32(p + 60, block)
         }
-        inode(2, mode: 0x41ED, size: 4096, block: 6); inode(3, mode: 0x81A4, size: 4, block: 7)
+        inode(2, mode: 0x41ED, size: 4096, block: 6); inode(3, mode: 0x81A4, size: fileSize, block: 7)
         func entry(_ offset: Int, inode: UInt32, length: UInt16, name: String, type: UInt8) {
             u32(offset, inode); u16(offset + 4, length); bytes[offset + 6] = UInt8(name.utf8.count); bytes[offset + 7] = type
             bytes.replaceSubrange((offset + 8)..<(offset + 8 + name.utf8.count), with: name.utf8)
@@ -146,18 +155,77 @@ final class ApplicationIconTests: XCTestCase {
         return bytes
     }
     func testReadOnlyExt4LookupLimitsAndCorruptExtents() throws {
-        let path = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: path) }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let path = directory.appendingPathComponent("system.img"), archive = directory.appendingPathComponent("output.hap")
         let original = ext4Fixture(); try original.write(to: path)
         let reader = try Ext4ImageReader(url: path)
-        XCTAssertEqual(try reader.file(at: "/icon.hap"), Data([1,2,3,4]))
-        XCTAssertThrowsError(try reader.file(at: "/icon.hap", limit: 3))
-        XCTAssertThrowsError(try reader.file(at: "/../icon.hap"))
-        XCTAssertThrowsError(try reader.file(at: "/missing"))
+        try reader.copyFile(at: "/icon.hap", to: archive)
+        XCTAssertEqual(try Data(contentsOf: archive), Data([1,2,3,4]))
+        XCTAssertThrowsError(try reader.copyFile(at: "/icon.hap", to: archive, limit: 3))
+        XCTAssertThrowsError(try reader.copyFile(at: "/../icon.hap", to: archive))
+        XCTAssertThrowsError(try reader.copyFile(at: "/missing", to: archive))
         XCTAssertEqual(try Data(contentsOf: path), original, "Reading must never modify the SDK image")
         var corrupt = original; let block = 8192 + 2 * 256 + 60
         corrupt[block] = 255; corrupt[block + 1] = 255; try corrupt.write(to: path)
-        XCTAssertThrowsError(try Ext4ImageReader(url: path).file(at: "/icon.hap"))
+        let incomplete = directory.appendingPathComponent("incomplete.hap")
+        XCTAssertThrowsError(try Ext4ImageReader(url: path).copyFile(at: "/icon.hap", to: incomplete))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: incomplete.path))
+
+        let largeSize: UInt32 = 68 * 1024 * 1024
+        try ext4Fixture(fileSize: largeSize).write(to: path)
+        let large = directory.appendingPathComponent("large.hap")
+        try Ext4ImageReader(url: path).copyFile(at: "/icon.hap", to: large)
+        XCTAssertEqual(try large.resourceValues(forKeys: [.fileSizeKey]).fileSize, Int(largeSize))
+        let handle = try FileHandle(forReadingFrom: large)
+        defer { try? handle.close() }
+        XCTAssertEqual(try handle.read(upToCount: 4), Data([1,2,3,4]))
+        try handle.seek(toOffset: UInt64(largeSize) - 4)
+        XCTAssertEqual(try handle.read(upToCount: 4), Data(repeating: 0, count: 4))
+    }
+
+    func testQCOW2UsesAllocatedClustersThenVerifiedBackingAndZeroes() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let backing = directory.appendingPathComponent("userdata.img")
+        let overlay = directory.appendingPathComponent("userdata.img.qcow2")
+        try Data(repeating: 7, count: 1024).write(to: backing)
+
+        var bytes = Data(count: 2048)
+        func put<T: FixedWidthInteger>(_ value: T, at offset: Int) {
+            withUnsafeBytes(of: value.bigEndian) { data in
+                bytes.replaceSubrange(offset..<(offset + data.count), with: data)
+            }
+        }
+        let name = Data("userdata.img".utf8)
+        put(UInt32(0x514649FB), at: 0)
+        put(UInt32(3), at: 4)
+        put(UInt64(104), at: 8)
+        put(UInt32(name.count), at: 16)
+        put(UInt32(9), at: 20)
+        put(UInt64(2048), at: 24)
+        put(UInt32(1), at: 36)
+        put(UInt64(512), at: 40)
+        bytes.replaceSubrange(104..<(104 + name.count), with: name)
+        put(UInt64(1024), at: 512)
+        put(UInt64(1536), at: 1032)
+        put(UInt64(1), at: 1040)
+        bytes.replaceSubrange(1536..<2048, with: Data(repeating: 9, count: 512))
+        try bytes.write(to: overlay)
+
+        let reader = try QCOW2ImageReader(url: overlay, backingURL: backing)
+        XCTAssertEqual(try reader.read(510, 4), Data([7, 7, 9, 9]))
+        XCTAssertEqual(try reader.read(1022, 4), Data([9, 9, 0, 0]))
+        XCTAssertEqual(try reader.read(1534, 4), Data(repeating: 0, count: 4))
+        XCTAssertThrowsError(try reader.read(2048, 1))
+        XCTAssertThrowsError(try QCOW2ImageReader(url: overlay, backingURL: directory.appendingPathComponent("other.img")))
+        XCTAssertEqual(try Data(contentsOf: overlay), bytes)
+
+        put(UInt64(1) << 62, at: 1032)
+        try bytes.write(to: overlay)
+        XCTAssertThrowsError(try QCOW2ImageReader(url: overlay, backingURL: backing).read(512, 1))
     }
 }
 

@@ -167,6 +167,55 @@ import SimLaunchCore
             }
         }
     }
+    func dataContainer(for app: InstalledApplication) async throws -> URL {
+        guard ready, !installing, uninstalling == nil, let store else {
+            throw CLIError(L10n.text("The application sandbox is unavailable."))
+        }
+        let generation = generation
+        let url = try await makeService(store.config).dataContainer(for: app)
+        try Task.checkCancellation()
+        guard ready, self.generation == generation else {
+            throw CLIError(L10n.text("The device connection changed. Refresh before continuing."))
+        }
+        return url
+    }
+    func sandboxDirectory(for app: InstalledApplication, components: [String]) async throws -> SandboxDirectory {
+        guard ready, !installing, uninstalling == nil, let store, let snapshot else {
+            throw CLIError(L10n.text("The application sandbox is unavailable."))
+        }
+        let generation = generation
+        let directory = try await makeService(store.config).sandboxDirectory(for: app, user: snapshot.user, components: components)
+        try Task.checkCancellation()
+        guard ready, self.generation == generation else {
+            throw CLIError(L10n.text("The device connection changed. Refresh before continuing."))
+        }
+        return directory
+    }
+    func downloadSandboxFile(for app: InstalledApplication, components: [String], name: String, forPreview: Bool) async throws -> SandboxFile {
+        guard ready, !installing, uninstalling == nil, let store, let snapshot else {
+            throw CLIError(L10n.text("The application sandbox is unavailable."))
+        }
+        let generation = generation
+        let file = try await makeService(store.config).downloadSandboxFile(
+            for: app, user: snapshot.user, components: components, name: name, forPreview: forPreview
+        )
+        try Task.checkCancellation()
+        guard ready, self.generation == generation else {
+            throw CLIError(L10n.text("The device connection changed. Refresh before continuing."))
+        }
+        return file
+    }
+    func importSandboxFile(_ url: URL, for app: InstalledApplication, components: [String]) async throws {
+        guard ready, !installing, uninstalling == nil, let store, let snapshot else {
+            throw CLIError(L10n.text("The application sandbox is unavailable."))
+        }
+        let generation = generation
+        try await makeService(store.config).importSandboxFile(url, into: components, app: app, user: snapshot.user)
+        try Task.checkCancellation()
+        guard ready, self.generation == generation else {
+            throw CLIError(L10n.text("The device connection changed. Refresh before continuing."))
+        }
+    }
     func details(_ app: InstalledApplication, forceIcon: Bool = false) async throws -> InstalledApplication {
         guard ready, let store, let snapshot else { throw CLIError(L10n.text("App details are cached while the device is offline.")) }
         detailRequest?.cancel(); detailRequestID = UUID()
@@ -262,7 +311,9 @@ struct ApplicationManagementView: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     if session.uninstalling != nil { Text(L10n.text("Uninstalling application…")) }
                     else if session.readingDetails { Text(L10n.text("Reading application details…")) }
-                    else if let snapshot = session.snapshot { Text(L10n.text("Last refreshed") + " " + snapshot.date.formatted(date: .omitted, time: .standard)) }
+                    else if let snapshot = session.snapshot {
+                        Text(L10n.text("Last refreshed") + " " + snapshot.date.formatted(.dateTime.hour().minute().second().locale(Locale(identifier: L10n.language))))
+                    }
                     if let user = session.snapshot?.user { Text(L10n.text("Device user") + " " + user) }
                 }
             }.font(.caption).foregroundStyle(.secondary)

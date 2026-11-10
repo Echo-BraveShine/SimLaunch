@@ -56,6 +56,28 @@ final class ApplicationTests: XCTestCase {
     private func service(_ fixture: ApplicationFixture, platform: Platform) -> ApplicationService {
         ApplicationService(device: Device(platform: platform, key: "test", name: "Test", state: .running), connector: { await fixture.connection() }, execute: { _, args, _, _ in try await fixture.run(args) })
     }
+    func testIOSDataContainerUsesSelectedDeviceAndRequiresExistingDirectory() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("App sandbox " + UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let device = Device(platform: .iOS, key: "selected-device", name: "Test", state: .running)
+        let app = InstalledApplication(id: "dev.simlaunch.fixture", bundlePath: "/Fixture.app")
+        func resolver(_ output: String) -> ApplicationService {
+            ApplicationService(device: device, connector: { DeviceToolConnection(path: "/fixture/xcrun", target: device.key) }, execute: { _, arguments, _, _ in
+                XCTAssertEqual(arguments, ["simctl", "get_app_container", device.key, app.id, "data"])
+                return output
+            })
+        }
+        let url = try await resolver(folder.path + "\n").dataContainer(for: app)
+        XCTAssertEqual(url.path, folder.path)
+        let missing = folder.appendingPathComponent("removed").path
+        do {
+            _ = try await resolver(missing + "\n").dataContainer(for: app)
+            XCTFail("A missing sandbox must never be passed to Finder")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, L10n.text("The application's data container could not be found."))
+        }
+    }
     func testIOSOpenStepMetadataAndConservativeTypes() throws {
         let apps = try ApplicationParsers.ios(#"{ "com.test.user" = { ApplicationType = User; CFBundleDisplayName = "My App"; IsRemovable = 1; }; "com.test.system" = { ApplicationType = System; IsRemovable = 1; }; "com.test.unknown" = {}; }"#)
         XCTAssertTrue(apps.first { $0.id == "com.test.user" }!.canUninstall)

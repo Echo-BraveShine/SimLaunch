@@ -231,7 +231,7 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 
 - iOS：解析 `simctl listapps` 的属性列表，读取应用元数据和可读取的独立图标文件；仅 `ApplicationType=User` 且未标记不可移除的应用可卸载。独立图标不可读时，在所选模拟器内通过 UIKit 解码 Assets.car 等图标资源。
 - Android / MuMu：读取当前用户，使用同一用户范围的 `pm list packages`、`-3`、`-s` 确认应用类型；查询版本后，优先由所选设备的 PackageManager / Drawable 原生读取名称并绘制图标，支持自适应 XML、矢量和拆分 APK 资源；不用安装辅助 APK。原生读取不可用时，才使用可选的 SDK AAPT2 提取 APK 名称和位图，此回退受权限和 64 MiB 大小限制。
-- HarmonyOS：通过所选 HDC 目标读取 `bm dump -a`、可用时的 `-a -l` 名称和所选应用详情，确认 `isSystemApp`、`removable`、版本和用户范围；按 iconResource 的模块与资源编号定位 HAP，使用所选 SDK 的 restool 解析资源表，读取位图 / SVG 或合成 layered-image 前景和背景。HDC 无权读取系统 HAP 时，尝试从所选模拟器对应的本机 SDK ext4 镜像读取同一路径，并严格核对包名、版本号和构建号后才使用；整个过程不挂载或修改镜像，不提升设备权限。类型未确认的应用只在“全部应用”中显示，禁用卸载。
+- HarmonyOS：通过所选 HDC 目标读取 `bm dump -a`、可用时的 `-a -l` 名称和所选应用详情，确认 `isSystemApp`、`removable`、版本和用户范围。按图标的模块和资源编号定位 HAP，通过所选 SDK 的 `restool` 解析位图、SVG 或分层图标。HDC 无法读取 HAP 时，可从对应的 SDK 系统镜像或所选实例的用户磁盘只读提取，并核对包名、版本号、构建号和模块。类型未确认的应用只在“全部应用”中显示，禁用卸载。
 
 应用管理的搜索栏提供“安装应用”入口，也可将安装包拖入列表区域。仅向运行中的设备安装：iOS 接受当前 Mac 架构的模拟器 `.app`，拒绝真机包；Android / MuMu 接受单个 `.apk` 或同一应用同一版本的一组拆分 APK（需包含基础包，校验需 SDK AAPT2）；鸿蒙接受单个 `.hap` 或同一应用同一版本的多模块 HAP（需包含入口模块）。暂不支持 `.ipa`、`.aab`、`.apks`、`.xapk`、鸿蒙 `.app` 分发包或独立 `.hsp`。
 
@@ -242,7 +242,7 @@ TRISIM_IOS_UDID=你的设备UDID swift test --filter IOSLaunchTests
 版本号与构建号分别读取：iOS 使用 `CFBundleShortVersionString` / `CFBundleVersion`，Android 使用 `versionName` / 完整 `versionCode`（保留高 32 位），鸿蒙使用 `versionName` / `versionCode`。缺失字段显示“未提供”，不将构建号充当版本号。iOS 优先读取本地化的 InfoPlist.strings 名称和声明的独立图标，再尝试通用图标；可解码图标统一转为有尺寸上限的 PNG。Android 缓存核对构建号、更新时间与安装路径，避免同版本名称更新后沿用旧名称和图标；APK 元数据还会核对包名。系统应用也会尝试原生图标读取；打开详情时还可执行 APK 资源回退。
 
 
-图标仍受工具、系统版本和资源访问权限约束：iOS 运行时接口不可用、Android 原生读取被拒绝、鸿蒙 HAP 无法读取且本机没有匹配版本镜像时会保留占位图，并在详情给出原因。不会用其他版本的 SDK 图标或无关图片替代。鸿蒙目前支持普通 ext4 SDK 镜像、可读 HAP 中的位图 / SVG 和 layered-image；不支持加密 HAP、加密 / 压缩 / 非 ext4 镜像或需要尚未实现资源解析方式的图标。仅从资源引用不能保证每个受保护应用都可读取。
+应用未声明图标、资源不可读或格式不受支持时，会保留占位图，并在详情显示可用的诊断信息。鸿蒙支持普通 ext4 SDK 镜像，以及以所选 SDK 原始镜像为基础的标准、未压缩 QCOW2 实例镜像。图标提取使用普通 HDC 权限，对镜像只读。
 
 图标导出程序源码位于 `Tools/IconHelpers/`，预编译的 Android DEX 与 arm64 / x86_64 iOS Simulator 可执行文件作为 SwiftPM 资源打包。常规构建不额外下载依赖；修改辅助程序后，使用完整 Xcode、Android SDK Build Tools 和 JDK 重新生成：
 
@@ -255,6 +255,16 @@ SIMLAUNCH_JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home
 Android 辅助程序只在 shell 权限下绘制图标，不加载应用代码、不启动 Activity；临时 DEX 使用随机文件名，查询结束或取消后清理。iOS 辅助程序在指定模拟器内执行，包含运行时检测的 UIKit 兼容适配，后续 Xcode / iOS 更新可能需要调整。输出统一归一化为有尺寸上限的 PNG；SVG 外部资源和活动内容会被拒绝。
 
 列表先读取基本信息，优先为可见行解码图标；Android / MuMu 每批最多 8 个应用共享一次辅助程序上传和运行，随后继续补齐其余应用的名称与图标，保留按名称搜索的能力。三端在可见项之后继续补齐剩余图标，避免依赖界面的行出现回调而漏掉请求；Android 批量读取失败时恢复逐应用原生读取及 APK 资源回退。图标缓存保存在 `~/Library/Caches/dev.ekko.simlaunch/ApplicationIcons-v2`，内存上限约 8 MiB，磁盘定期清理至约 50 MiB / 512 项，最长保留 30 天。缓存不只以包名区分：还核对设备、语言、构建号和资源修订信息；Android 包含用户、更新时间和安装路径，鸿蒙包含更新时间与 HAP / 资源引用，iOS 包含应用路径与本地图标资源修改时间及大小。应用更新会使用新缓存键；列表与详情的主动刷新会绕过图标缓存。应用运行时切换图标但安装信息未改变时，可主动刷新获取新图标。
+
+### 沙盒文件
+
+在运行中的设备上打开「应用管理」，点击所选应用的「详情」。iOS 模拟器使用「在访达中打开沙盒」进入本机数据容器。Android、MuMu 和鸿蒙使用「查看沙盒」进入应用内的文件浏览器。
+
+- **预览和导出**。点击文件行的眼睛图标，在 macOS 快速查看中预览临时副本。右键可选择其他 Mac 应用打开。快速查看入口支持最多 32 MiB 的文件，较大的文件可导出后在本机查看。导出完成后可在访达中定位保存的副本。
+- **导入**。点击「导入文件…」可多选本地文件，或从访达拖入当前列表。直接拖到子文件夹行会写入该子文件夹。同名文件或目录会跳过并报告，其他文件会继续处理。导入后列表会刷新。
+- **访问条件**。Android 和 MuMu 通过 ADB 访问可调试应用。鸿蒙需要支持应用沙盒命令的 HDC，以及已启动的调试签名应用。鸿蒙浏览从 `el2/base` 开始，导入需要目标目录可写。
+
+### 集成测试
 
 可选 MuMu 安装集成测试（需已有运行中的 MuMu，安装后立即卸载一次性测试包；仅接受包名以 `dev.ekko.simlaunch.installtest` 开头的测试 APK）：
 

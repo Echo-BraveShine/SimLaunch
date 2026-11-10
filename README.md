@@ -7,7 +7,7 @@
 <p align="center"><strong>简体中文</strong> · <a href="README.en.md">English</a></p>
 
 <p align="center"><strong>三个平台，一个菜单栏入口。</strong></p>
-<p align="center">在 macOS 上管理 iOS、Android、HarmonyOS 和 MuMu 模拟器。<br>启动设备、安装应用、查看日志，让日常开发少一点切换。</p>
+<p align="center">在 macOS 菜单栏管理 iOS、Android、HarmonyOS 和 MuMu 模拟器。<br>启动设备、安装应用、处理沙盒文件和查看实时日志。</p>
 
 <p align="center">
   <a href="https://echo-braveshine.github.io/SimLaunch/">官方网站</a> ·
@@ -25,6 +25,7 @@
 | **统一设备管理** | 从菜单栏查看、启动和停止设备；支持 iOS、Android AVD、HarmonyOS 与 MuMu Mac 版。 |
 | **常用设备** | 最近使用的设备置顶，最多显示 5 项；平台分类可折叠并记住状态。 |
 | **应用管理** | 搜索已安装应用、查看名称与版本详情、卸载用户应用；支持拖入或选择安装包。 |
+| **沙盒文件** | 在 Android、MuMu 和鸿蒙上浏览目录、用 macOS 快速查看预览文件，并导入或导出。iOS 模拟器可直接在访达中打开数据目录。 |
 | **实时日志** | 独立日志面板，支持搜索、级别与 PID 筛选、复制和导出；向上滚动时暂停自动跟随。 |
 | **设备信息** | 查看设备配置、系统版本和工具提供的详细信息，支持搜索、复制与导出。 |
 | **顺手的右键操作** | 复制设备名称或 UDID、在访达中显示目录，以及适用设备的冷启动和删除。 |
@@ -82,6 +83,8 @@ brew install --cask echo-braveshine/simlaunch/simlaunch
 应用管理与实时日志需要设备运行并建立调试连接。图标、应用信息和日志范围受平台工具及权限限制；部分资源可能无法读取。
 
 安装应用支持 iOS 模拟器 `.app`、Android / MuMu 的 `.apk` 与拆分 APK，以及鸿蒙 `.hap` 多模块包。覆盖安装需满足平台的签名与版本要求，具体格式和限制见 [应用管理说明](docs/GUIDE.md#应用管理)。
+
+在运行中的设备上打开 **应用管理 → 应用详情 → 查看沙盒**。Android 和 MuMu 需要可调试的应用。鸿蒙需要支持沙盒访问的 HDC，以及已启动的调试签名应用。可以批量选择文件或从访达拖入当前目录或子文件夹，同名项目会跳过。iOS 的入口为「在访达中打开沙盒」。[沙盒文件说明](docs/GUIDE.md#沙盒文件)
 
 目前专注于模拟器，不包含 SDK 或系统镜像，也不负责创建模拟器；真机支持尚未实现。
 

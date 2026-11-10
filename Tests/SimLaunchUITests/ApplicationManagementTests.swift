@@ -1,9 +1,30 @@
 import XCTest
+import SwiftUI
+import AppKit
 import SimLaunchCore
 @testable import SimLaunchCore
 @testable import SimLaunch
 
 @MainActor final class ApplicationManagementTests: XCTestCase {
+    func testSandboxDropHighlightRendersInLightAndDarkAppearance() throws {
+        func render(scheme: ColorScheme, active: Bool) throws -> NSBitmapImageRep {
+            let view = Color.clear.frame(width: 80, height: 40)
+                .modifier(SandboxDropHighlight(active: active, radius: 8))
+                .accentColor(.blue)
+                .environment(\.colorScheme, scheme)
+            return NSBitmapImageRep(cgImage: try XCTUnwrap(ImageRenderer(content: view).cgImage))
+        }
+        let light = try render(scheme: .light, active: true)
+        let dark = try render(scheme: .dark, active: true)
+        let inactive = try render(scheme: .dark, active: false)
+        let lightFill = try XCTUnwrap(light.colorAt(x: 40, y: 20)).alphaComponent
+        let darkFill = try XCTUnwrap(dark.colorAt(x: 40, y: 20)).alphaComponent
+        XCTAssertGreaterThan(lightFill, 0)
+        XCTAssertGreaterThan(darkFill, lightFill)
+        XCTAssertGreaterThan(try XCTUnwrap(dark.colorAt(x: 40, y: 1)).alphaComponent, darkFill)
+        XCTAssertEqual(try XCTUnwrap(inactive.colorAt(x: 40, y: 20)).alphaComponent, 0)
+    }
+
     private func waitUntil(_ condition: () -> Bool) async throws {
         let end = Date().addingTimeInterval(3)
         while !condition() && Date() < end { try await Task.sleep(nanoseconds: 10_000_000) }

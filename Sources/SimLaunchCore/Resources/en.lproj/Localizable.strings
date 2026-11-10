@@ -445,6 +445,11 @@
 "iconResourceId" = "iconResourceId";
 
 "The HAP icon location is unavailable." = "The HAP icon location is unavailable.";
+"This HarmonyOS app does not declare an icon." = "This HarmonyOS app does not declare an icon.";
+"The HAP exceeds the icon reader's package size limit." = "The HAP exceeds the icon reader's package size limit.";
+"The installed HAP cannot be located in the simulator disk." = "The installed HAP cannot be located in the simulator disk.";
+"The installed application changed while reading its icon. Refresh and try again." = "The installed application changed while reading its icon. Refresh and try again.";
+"Installed simulator disk (read-only)" = "Installed simulator disk (read-only)";
 
 "The HAP is protected, unavailable, mismatched, or its icon format is unsupported." = "The HAP is protected, unavailable, mismatched, or its icon format is unsupported.";
 
@@ -523,6 +528,8 @@
 "targetVersion" = "targetVersion";
 
 "appProvisionType" = "appProvisionType";
+"Debug signing" = "Debug signing";
+"Release signing" = "Release signing";
 
 "appDistributionType" = "appDistributionType";
 
@@ -571,3 +578,48 @@
 "An installed application has the same identifier. This will attempt to update it." = "An installed application has the same identifier. This will attempt to update it.";
 
 "Install" = "Install";
+
+"Open Sandbox in Finder" = "Open Sandbox in Finder";
+
+"The application sandbox is unavailable." = "The application sandbox is unavailable.";
+
+"The application's data container could not be found." = "The application's data container could not be found.";
+
+"Finder could not open the application sandbox." = "Finder could not open the application sandbox.";
+
+"App sandbox" = "App sandbox";
+"Browse Sandbox" = "Browse Sandbox";
+"Parent folder" = "Parent folder";
+"Connect the simulator to browse the app sandbox." = "Connect the simulator to browse the app sandbox.";
+"Sandbox access requires a debuggable Android app." = "Sandbox access requires a debuggable Android app.";
+"Sandbox access requires a running debug-signed HarmonyOS app and HDC sandbox support." = "Sandbox access requires a running debug-signed HarmonyOS app and HDC sandbox support.";
+"Open this app in the simulator, then refresh to load its debug sandbox." = "Open this app in the simulator, then refresh to load its debug sandbox.";
+"This is a release-signed HarmonyOS app. Install a debug-signed build to browse its sandbox." = "This is a release-signed HarmonyOS app. Install a debug-signed build to browse its sandbox.";
+"This folder is empty." = "This folder is empty.";
+"This folder has more entries than can be displayed." = "This folder has more entries than can be displayed.";
+"Could not read the sandbox directory." = "Could not read the sandbox directory.";
+"The simulator took too long to list this folder. Try refreshing." = "The simulator took too long to list this folder. Try refreshing.";
+"Import Files…" = "Import Files…";
+"Import" = "Import";
+"Importing files…" = "Importing files…";
+"Drop files here or onto a folder to import them." = "Drop files here or onto a folder to import them.";
+"Files imported: %d" = "Files imported: %d";
+"Choose a regular local file to import." = "Choose a regular local file to import.";
+"A file or folder with this name already exists." = "A file or folder with this name already exists.";
+"Could not import the file into this sandbox folder." = "Could not import the file into this sandbox folder.";
+"Preview file" = "Preview file";
+"Open with App…" = "Open with App…";
+"Choose a Mac app to open the local copy." = "Choose a Mac app to open the local copy.";
+"Open" = "Open";
+"Could not open the file with %@. %@" = "Could not open the file with %@. %@";
+"Export file…" = "Export file…";
+"Preparing preview…" = "Preparing preview…";
+"Preparing file…" = "Preparing file…";
+"Exporting file…" = "Exporting file…";
+"Sandbox file exported." = "Sandbox file exported.";
+"Could not verify the selected sandbox file. Refresh the folder and try again." = "Could not verify the selected sandbox file. Refresh the folder and try again.";
+"Files larger than 32 MB can be exported for local viewing." = "Files larger than 32 MB can be exported for local viewing.";
+"The simulator did not finish transferring the file." = "The simulator did not finish transferring the file.";
+"The file changed or the transfer was incomplete. Refresh the folder and try again." = "The file changed or the transfer was incomplete. Refresh the folder and try again.";
+"The file transfer timed out. Try again." = "The file transfer timed out. Try again.";
+"HDC cannot transfer files with these characters in the path." = "HDC cannot transfer files with these characters in the path.";

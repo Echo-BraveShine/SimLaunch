@@ -7,7 +7,7 @@
 <p align="center"><a href="README.md">简体中文</a> · <strong>English</strong></p>
 
 <p align="center"><strong>Three platforms. One menu bar.</strong></p>
-<p align="center">Manage iOS, Android, HarmonyOS and MuMu simulators on macOS.<br>Launch devices, install apps and follow logs with less switching between tools.</p>
+<p align="center">Manage iOS, Android, HarmonyOS and MuMu simulators from the macOS menu bar.<br>Launch devices, install apps, work with sandbox files and follow live logs.</p>
 
 <p align="center">
   <a href="https://echo-braveshine.github.io/SimLaunch/?lang=en">Website</a> ·
@@ -25,6 +25,7 @@
 | **One device list** | Browse, start and stop iOS, Android AVD, HarmonyOS and MuMu for Mac devices from the menu bar. |
 | **Recent devices** | Keep up to five recently used devices at the top. Collapse platform groups and remember their state. |
 | **App management** | Search installed apps, inspect names and versions, and uninstall user apps. Drag in installation packages or choose them from a file picker. |
+| **Sandbox files** | Browse folders, preview files with macOS Quick Look, and import or export files on Android, MuMu and HarmonyOS. Open iOS Simulator data containers directly in Finder. |
 | **Live logs** | Search, filter by level or PID, copy and export in a dedicated panel. Scroll up to pause automatic following while reading earlier messages. |
 | **Device information** | Inspect configuration, system versions and details reported by platform tools. Search, copy or export the information. |
 | **Context menus** | Copy device names or UDIDs, reveal device folders in Finder, and cold boot or delete devices where supported. |
@@ -82,6 +83,8 @@ Create simulators in the corresponding development tools before opening SimLaunc
 App management and live logs require a running device with a working debugging connection. Icons, app details and log availability depend on platform tools and permissions; some resources may be inaccessible.
 
 App installation supports iOS Simulator `.app` bundles, Android / MuMu `.apk` files and split APK sets, and HarmonyOS multi-module `.hap` packages. Updates must satisfy the platform's signing and version requirements. See [app management details (Chinese)](docs/GUIDE.md#应用管理) for supported formats and limitations.
+
+On a running device, go to **Application management → App details → Browse Sandbox**. Android and MuMu require a debuggable app. HarmonyOS requires an HDC version with sandbox support and a running, debug-signed app. Select multiple files or drag them from Finder into the current folder or onto a subfolder. Items with the same name are skipped. On iOS Simulator, choose **Open Sandbox in Finder**. [Sandbox file guide (Chinese)](docs/GUIDE.md#沙盒文件)
 
 SimLaunch currently focuses on simulators. It does not bundle SDKs or system images, create simulators, or support physical devices.
 

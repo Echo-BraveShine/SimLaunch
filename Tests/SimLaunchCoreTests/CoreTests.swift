@@ -185,6 +185,23 @@ final class LocalizationTests: XCTestCase {
             for language in ["en", "zh-Hans"] { XCTAssertNotEqual(L10n.text(key, language: language), key) }
         }
     }
+    func testSandboxActionsAndIconDiagnosticsAreLocalized() {
+        for (key, chinese) in [
+            ("Import Files…", "导入文件…"),
+            ("Preview file", "预览文件"),
+            ("Open with App…", "用其他应用打开…"),
+            ("Export", "导出"),
+            ("A file or folder with this name already exists.", "已存在同名文件或文件夹。"),
+            ("Installed simulator disk (read-only)", "模拟器实例磁盘（只读）"),
+            ("Debug signing", "调试签名")
+        ] {
+            XCTAssertEqual(L10n.text(key, language: "en"), key)
+            XCTAssertEqual(L10n.text(key, language: "zh-Hans"), chinese)
+        }
+        let key = "Files imported: %d"
+        XCTAssertEqual(String(format: L10n.text(key, language: "en"), 3), "Files imported: 3")
+        XCTAssertEqual(String(format: L10n.text(key, language: "zh-Hans"), 3), "已导入 3 个文件")
+    }
     func testLowercaseSwiftPMLocalizationDirectory() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
