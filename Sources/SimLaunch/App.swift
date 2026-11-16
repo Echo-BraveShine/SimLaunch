@@ -7,7 +7,7 @@ import SimLaunchCore
     @Published var config: Configuration
     @Published var devices: [Device] = []
     @Published var errors: [String] = []
-    @Published var operationError: String?
+    @Published var operationError: (any Error)?
     @Published var refreshing = false
     @Published private(set) var manuallyRefreshing = false
     @Published private(set) var hasRefreshed = false
@@ -81,12 +81,12 @@ import SimLaunchCore
     func reveal(_ device: Device) {
         Task {
             do { try await IOSProvider(config).reveal(device); recordUsage(device.id) }
-            catch { operationError = error.localizedDescription }
+            catch { operationError = error }
         }
     }
     func showInFinder(_ device: Device) {
         guard let directory = device.directory, FileManager.default.fileExists(atPath: directory) else {
-            operationError = L10n.text("设备目录不存在或无法定位，请刷新后重试"); return
+            operationError = CLIError(L10n.text("设备目录不存在或无法定位，请刷新后重试")); return
         }
         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: directory)])
     }
@@ -108,7 +108,7 @@ import SimLaunchCore
                 recentDeviceIDs.removeAll { $0 == device.id }
                 UserDefaults.standard.set(recentDeviceIDs, forKey: "recentDeviceIDs")
                 await refresh()
-            } catch { operationError = error.localizedDescription }
+            } catch { operationError = error }
         }
     }
     func toggle(_ device: Device, mode: BootMode = .normal) {
@@ -129,7 +129,7 @@ import SimLaunchCore
                 else { throw CLIError(L10n.text("设备状态已变化，请刷新后重试")) }
                 pending[device.id] = (stop ? .stopped : .running, Date().addingTimeInterval(120))
                 await refresh()
-            } catch { busy.remove(device.id); operationError = error.localizedDescription }
+            } catch { busy.remove(device.id); operationError = error }
         }
     }
 }
@@ -207,9 +207,19 @@ struct Panel: View {
         } message: { device in
             Text(L10n.format("Permanently delete %@ device “%@” and all its apps and data? This cannot be undone.", device.platform.rawValue, device.name))
         }
-        .alert(L10n.text("操作失败"), isPresented: Binding(get: { store.operationError != nil }, set: { if !$0 { store.operationError = nil } })) {
-            Button(L10n.text("好")) { store.operationError = nil }
-        } message: { Text(store.operationError ?? "") }
+        .alert(
+            store.operationError is HarmonyLicenseRequiredError ? L10n.text("HarmonyOS license confirmation required") : L10n.text("操作失败"),
+            isPresented: Binding(get: { store.operationError != nil }, set: { if !$0 { store.operationError = nil } }),
+            presenting: store.operationError
+        ) { error in
+            if let license = error as? HarmonyLicenseRequiredError {
+                Button(L10n.text("Copy Command")) { copy(license.command) }
+                Button(L10n.text("Open Launch Log")) { NSWorkspace.shared.open(license.logURL) }
+            }
+            Button(L10n.text("好"), role: .cancel) {}
+        } message: { error in
+            Text(error.localizedDescription)
+        }
     }
     private func deviceRow(_ device: Device, showPlatform: Bool = false) -> some View {
         HStack {

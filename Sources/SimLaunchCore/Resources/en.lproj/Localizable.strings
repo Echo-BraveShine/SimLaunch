@@ -63,6 +63,10 @@
 "Command timed out: %@ %@" = "Command timed out: %@ %@";
 "Exit code %d: %@" = "Exit code %d: %@";
 "Launch failed (exit %d): %@\nLog: %@" = "Launch failed (exit %d): %@\nLog: %@";
+"HarmonyOS license confirmation required" = "HarmonyOS license confirmation required";
+"Run the command below in Terminal to read Huawei’s agreements. If you agree, confirm the prompts, then retry in SimLaunch.\n\n%@" = "Run the command below in Terminal to read Huawei’s agreements. If you agree, confirm the prompts, then retry in SimLaunch.\n\n%@";
+"Copy Command" = "Copy Command";
+"Open Launch Log" = "Open Launch Log";
 "Cannot parse HarmonyOS -list -details output. Check the CLI version. %@" = "Cannot parse HarmonyOS -list -details output. Check the CLI version. %@";
 "Executable not found. Configure its path in Settings. %@" = "Executable not found. Configure its path in Settings. %@";
 "Simulator.app or DeviceHub.app not found. Check the selected Xcode or specify an app path in Settings. Searched: %@" = "Simulator.app or DeviceHub.app not found. Check the selected Xcode or specify an app path in Settings. Searched: %@";

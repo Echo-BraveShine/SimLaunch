@@ -154,6 +154,21 @@ public struct AndroidProvider: DeviceProvider {
     }
 }
 
+public struct HarmonyLicenseRequiredError: LocalizedError {
+    public let command: String
+    public let logURL: URL
+
+    init(emulatorURL: URL, logURL: URL) {
+        let quotedPath = "'" + emulatorURL.path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        command = quotedPath + " -license"
+        self.logURL = logURL
+    }
+
+    public var errorDescription: String? {
+        L10n.format("Run the command below in Terminal to read Huawei’s agreements. If you agree, confirm the prompts, then retry in SimLaunch.\n\n%@", command)
+    }
+}
+
 public struct HarmonyProvider: DeviceProvider {
     public let platform = Platform.HarmonyOS
     let config: Configuration
@@ -164,7 +179,14 @@ public struct HarmonyProvider: DeviceProvider {
         return try PathDiscovery.resolve("", candidates: await PathDiscovery.harmonyCandidates())
     }
     public func list() async throws -> [Device] { try Parsers.harmony(await ProcessRunner().run(path(), ["-list", "-details"])) }
-    public func start(_ d: Device, mode: BootMode) async throws { try await launches.launch(key: d.id, path: path(), args: EmulatorLaunchArguments.harmony(name: d.key, mode: mode)) }
+    public func start(_ d: Device, mode: BootMode) async throws {
+        let emulatorURL = URL(fileURLWithPath: try await path())
+        do {
+            try await launches.launch(key: d.id, path: emulatorURL.path, args: EmulatorLaunchArguments.harmony(name: d.key, mode: mode))
+        } catch let failure as EmulatorLaunchFailure where failure.output.localizedCaseInsensitiveContains("Please agree to the agreement first.") {
+            throw HarmonyLicenseRequiredError(emulatorURL: emulatorURL, logURL: failure.logURL)
+        }
+    }
     public func delete(_ d: Device) async throws {
         try DeviceDeletion.validate(d)
         _ = try await ProcessRunner().run(path(), ["-delete", d.key, "-force"], timeout: 60)

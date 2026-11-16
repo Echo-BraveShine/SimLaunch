@@ -63,6 +63,10 @@
 "Command timed out: %@ %@" = "命令超时：%@ %@";
 "Exit code %d: %@" = "退出码 %d：%@";
 "Launch failed (exit %d): %@\nLog: %@" = "启动失败（退出码 %d）：%@\n日志：%@";
+"HarmonyOS license confirmation required" = "需要确认 HarmonyOS 许可协议";
+"Run the command below in Terminal to read Huawei’s agreements. If you agree, confirm the prompts, then retry in SimLaunch.\n\n%@" = "请在终端运行下方命令，阅读华为协议。如果同意，请按提示确认，然后回到 SimLaunch 重试。\n\n%@";
+"Copy Command" = "复制命令";
+"Open Launch Log" = "打开启动日志";
 "Cannot parse HarmonyOS -list -details output. Check the CLI version. %@" = "无法解析 HarmonyOS -list -details 输出；请检查 CLI 版本。%@";
 "Executable not found. Configure its path in Settings. %@" = "未找到可执行工具，请在设置中配置路径。%@";
 "Simulator.app or DeviceHub.app not found. Check the selected Xcode or specify an app path in Settings. Searched: %@" = "未找到 Simulator.app 或 DeviceHub.app。请检查所选 Xcode，或在设置中指定应用路径。检查位置：%@";

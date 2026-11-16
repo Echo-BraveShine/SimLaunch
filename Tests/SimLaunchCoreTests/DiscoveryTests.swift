@@ -34,6 +34,61 @@ private final class DiscoveryFixture {
     }
 }
 
+final class HarmonyLaunchTests: XCTestCase {
+    func testLicensePromptOffersInteractiveCommandForConfiguredEmulator() async throws {
+        let fixture = try DiscoveryFixture()
+        let emulator = try fixture.executable("Custom Studio's tools/Emulator", body: #"""
+        if [ "$1" = -license ] && [ "$#" -eq 1 ]; then
+            printf 'interactive license review\n'
+            exit 0
+        fi
+        printf 'HarmonyOS Software License and Service Agreement\n'
+        awk 'BEGIN { for (i = 0; i < 3000; i++) print "Agreement text" }'
+        printf 'Please read carefully and confirm whether agree to the above agreement? (y/N): '
+        if ! read -r answer; then
+            printf 'Please agree to the agreement first.\n\nUnable to start the emulator\n' >&2
+            exit 1
+        fi
+        """#)
+        var config = Configuration()
+        config.harmony = emulator.path
+        let provider = HarmonyProvider(config, launches: LaunchManager())
+        let device = Device(platform: .HarmonyOS, key: "Mate 90 Pro", name: "Mate 90 Pro", state: .stopped)
+
+        do {
+            try await provider.start(device)
+            XCTFail("The simulator should require license confirmation")
+        } catch let error as HarmonyLicenseRequiredError {
+            defer { try? FileManager.default.removeItem(at: error.logURL) }
+            let output = try await ProcessRunner().run("/bin/sh", ["-c", error.command])
+            XCTAssertEqual(output, "interactive license review\n")
+            let log = try String(contentsOf: error.logURL, encoding: .utf8)
+            XCTAssertTrue(log.hasPrefix("HarmonyOS Software License and Service Agreement\n"))
+            XCTAssertTrue(log.contains("Please agree to the agreement first."))
+            XCTAssertFalse(error.localizedDescription.contains("Agreement text"))
+        }
+    }
+
+    func testOtherHarmonyStartupErrorsKeepTheirDiagnostics() async throws {
+        let fixture = try DiscoveryFixture()
+        let emulator = try fixture.executable("Emulator", body: "echo 'System image is missing' >&2\nexit 1\n")
+        var config = Configuration()
+        config.harmony = emulator.path
+        let provider = HarmonyProvider(config, launches: LaunchManager())
+        let device = Device(platform: .HarmonyOS, key: "Phone", name: "Phone", state: .stopped)
+
+        do {
+            try await provider.start(device, mode: .cold)
+            XCTFail("The simulator should report the missing image")
+        } catch let error as EmulatorLaunchFailure {
+            defer { try? FileManager.default.removeItem(at: error.logURL) }
+            XCTAssertEqual(error.exitCode, 1)
+            XCTAssertTrue(error.localizedDescription.contains("System image is missing"))
+            XCTAssertTrue(error.localizedDescription.contains(error.logURL.path))
+        }
+    }
+}
+
 final class PathConfigurationTests: XCTestCase {
     func testCLIResolutionRejectsDirectoriesAndSkipsNonExecutableFiles() throws {
         let fixture = try DiscoveryFixture()

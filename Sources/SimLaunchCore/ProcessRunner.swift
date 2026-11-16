@@ -77,6 +77,16 @@ public struct ProcessRunner {
     }
 }
 
+struct EmulatorLaunchFailure: LocalizedError {
+    let exitCode: Int32
+    let output: String
+    let logURL: URL
+
+    var errorDescription: String? {
+        L10n.format("Launch failed (exit %d): %@\nLog: %@", exitCode, String(output.suffix(2000)), logURL.path)
+    }
+}
+
 /// Keep long-lived launchers alive; their output goes to a log, never an unread pipe.
 public actor LaunchManager {
     private var processes: [String: Process] = [:]
@@ -99,8 +109,8 @@ public actor LaunchManager {
         try p.run(); processes[key] = p
         try await Task.sleep(nanoseconds: 700_000_000)
         if !p.isRunning && p.terminationStatus != 0 {
-            let message = (try? String(contentsOf: log, encoding: .utf8)) ?? ""
-            throw CLIError(L10n.format("Launch failed (exit %d): %@\nLog: %@", p.terminationStatus, String(message.suffix(2000)), log.path))
+            let output = (try? Data(contentsOf: log)).map { String(decoding: $0, as: UTF8.self) } ?? ""
+            throw EmulatorLaunchFailure(exitCode: p.terminationStatus, output: output, logURL: log)
         }
     }
     private func finished(_ key: String, _ process: Process) {
